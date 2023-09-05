@@ -1,4 +1,5 @@
 """"""
+import numpy as np
 
 H_RES = ["V", "I", "F", "L", "M", "C", "W"]
 OTHER_RES = ["D", "E", "K", "R", "H", "Y", "S", "T", "N", "Q"] + \
@@ -10,6 +11,16 @@ HP_RES = {
     **dict.fromkeys(OTHER_RES, "P")
     }
 
+# 2D
+xy_up = [0, 1]
+xy_right = [1, 0]
+xy_left = [-1, 0]
+xy_down = [0, -1]
+
+def random_pos(positions):
+    """Returns a random position from the available positions."""
+    selected_index = random.choice(positions.shape[0])
+    return positions[selected_index]
 
 def read_fasta(filename):
     """Read the first fasta sequence and returns its sequence."""
@@ -35,9 +46,13 @@ def seq_to_hp(sequence):
     return hp_sequence
 
 
-def available_adjacentPos(hp_coordinates, i):
+def available_adjacentPos(hp_coordinates, i, dtype=np.int16):
     """Returns free position adjacent to residue i."""
-    
+    movements = np.array(xy_up + xy_right + xy_left + xy_down, dtype=dtype)
+    adjacent_pos = movements + hp_coordinates[i]
+    available_pos = (np.in1d(adjacent_pos, hp_coordinates) == False)
+    print(available_pos)
+    return available_pos
 
 def init_coordinates(hp_sequence, random=False):
     positions = [[0, 0]]  # position of first residue
@@ -45,8 +60,10 @@ def init_coordinates(hp_sequence, random=False):
         for i in range(1, len(hp_sequence)):
             positions.append([i, 0])
     else:
-        pass
-    return np.array(positions)
+        for i in range(1, len(hp_sequence)):
+            pass
+
+    return np.array(positions, dtype=np.int16)
 
 if __name__ == "__main__":
     filename = "./data/A0A0C5B5G6.fasta"
@@ -55,3 +72,4 @@ if __name__ == "__main__":
     hp_coordinates = init_coordinates(hp_sequence)
 
     print(hp_coordinates)
+    print(hp_coordinates[1])
