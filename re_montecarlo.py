@@ -1,5 +1,6 @@
 """"""
 import numpy as np
+import random
 
 H_RES = ["V", "I", "F", "L", "M", "C", "W"]
 OTHER_RES = ["D", "E", "K", "R", "H", "Y", "S", "T", "N", "Q"] + \
@@ -19,7 +20,7 @@ xy_down = [0, -1]
 
 def random_pos(positions):
     """Returns a random position from the available positions."""
-    selected_index = random.choice(positions.shape[0])
+    selected_index = random.randint(1, positions.shape[0]) - 1
     return positions[selected_index]
 
 
@@ -58,20 +59,24 @@ def available_adjacentPos(hp_coordinates, i, dtype=np.int16):
 
     return available_pos
 
-def init_coordinates(hp_sequence, random=False):
+def init_coordinates(hp_sequence, random=False, dtype=np.int16):
     positions = [[0, 0]]  # position of first residue
     if not random:
         for i in range(1, len(hp_sequence)):
             positions.append([i, 0])
     else:
         for i in range(1, len(hp_sequence)):
-            pass
+            np_positions = np.array(positions, dtype=dtype)
+            available_position = available_adjacentPos(np_positions, i-1, dtype=dtype)
+            selected_position = random_pos(np.array(available_position))
+            positions.append(selected_position)
 
-    return np.array(positions, dtype=np.int16)
+    return np.array(positions, dtype=dtype)
+
 
 if __name__ == "__main__":
     filename = "./data/A0A0C5B5G6.fasta"
     sequence = read_fasta(filename)
     hp_sequence = seq_to_hp(sequence)
-    hp_coordinates = init_coordinates(hp_sequence)
-    hp_available = available_adjacentPos(hp_coordinates, 0)
+    hp_coordinates = init_coordinates(hp_sequence, random=True)
+    print(hp_coordinates)
