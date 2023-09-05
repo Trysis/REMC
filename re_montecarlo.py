@@ -12,21 +12,31 @@ HP_RES = {
 
 
 def read_fasta(filename):
-    """Read a fasta sequence and returns its sequence."""
-    sequence = ""
+    """Read the first fasta sequence and returns its sequence."""
+    sequence = None
     with open(filename, "r") as fasta_in:
         header = fasta_in.readline().strip()
-        sequence = sequence + fasta_in.read().strip()
-        sequence = header + sequence if header[0] != ">" else sequence
-        print(sequence)
+        sequence = fasta_in.read().strip()
+        last_index = sequence.find(">")
+        if last_index != -1:
+            sequence = sequence[:last_index]
+        if header[0] != ">":
+            sequence = header + sequence
+
     return sequence
 
 
 def seq_to_hp(sequence):
     """Convert protein sequence to its corresponding HP sequence."""
-    pass
+    sequence = sequence.upper()
+    hp_sequence = ""
+    for res in sequence:
+        hp_sequence += HP_RES[res]
+    return hp_sequence
 
 
 if __name__ == "__main__":
     filename = "./data/A0A0C5B5G6.fasta"
-    read_fasta(filename)
+    sequence = read_fasta(filename)
+    hp_sequence = seq_to_hp(sequence)
+    print(hp_sequence)
