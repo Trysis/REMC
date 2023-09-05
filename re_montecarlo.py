@@ -66,6 +66,7 @@ def init_coordinates(hp_sequence, random=False, dtype=np.int16):
         for i in range(1, len(hp_sequence)):
             positions.append([i, 0])
     else:  # If path is blocked before adding all residue, it will fail
+        # TODO : Parcours en largeur, ou profondeur avec choix random (selon la taille de la séquence)
         for i in range(1, len(hp_sequence)):
             np_positions = np.array(positions, dtype=dtype)
             available_position = available_adjacentPos(np_positions, i-1, dtype=dtype)
