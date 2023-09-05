@@ -22,6 +22,7 @@ def random_pos(positions):
     selected_index = random.choice(positions.shape[0])
     return positions[selected_index]
 
+
 def read_fasta(filename):
     """Read the first fasta sequence and returns its sequence."""
     sequence = None
@@ -48,10 +49,13 @@ def seq_to_hp(sequence):
 
 def available_adjacentPos(hp_coordinates, i, dtype=np.int16):
     """Returns free position adjacent to residue i."""
-    movements = np.array(xy_up + xy_right + xy_left + xy_down, dtype=dtype)
+    movements = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
     adjacent_pos = movements + hp_coordinates[i]
-    available_pos = (np.in1d(adjacent_pos, hp_coordinates) == False)
-    print(available_pos)
+    available_pos = []
+    for i in adjacent_pos.tolist():
+        if i not in hp_coordinates.tolist():
+            available_pos.append(i)
+
     return available_pos
 
 def init_coordinates(hp_sequence, random=False):
@@ -70,6 +74,4 @@ if __name__ == "__main__":
     sequence = read_fasta(filename)
     hp_sequence = seq_to_hp(sequence)
     hp_coordinates = init_coordinates(hp_sequence)
-
-    print(hp_coordinates)
-    print(hp_coordinates[1])
+    hp_available = available_adjacentPos(hp_coordinates, 0)
