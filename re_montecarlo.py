@@ -1,18 +1,25 @@
 """"""
 
-import numpy as np
+H_RES = ["V", "I", "F", "L", "M", "C", "W"]
+OTHER_RES = ["D", "E", "K", "R", "H", "Y", "S", "T", "N", "Q"] + \
+            ["G", "A", "P"] + \
+            ["B", "Z", "X", "J", "O", "U"]  # specials
 
-H_residues = []
-P_redidues = []
-HP_residue = {
-    **dict.fromkeys(H_residues, "H"),
-    **dict.fromkeys(P_redidues, "P")
+HP_RES = {
+    **dict.fromkeys(H_RES, "H"),
+    **dict.fromkeys(OTHER_RES, "P")
     }
 
 
 def read_fasta(filename):
     """Read a fasta sequence and returns its sequence."""
-    pass
+    sequence = ""
+    with open(filename, "r") as fasta_in:
+        header = fasta_in.readline().strip()
+        sequence = sequence + fasta_in.read().strip()
+        sequence = header + sequence if header[0] != ">" else sequence
+        print(sequence)
+    return sequence
 
 
 def seq_to_hp(sequence):
@@ -21,4 +28,5 @@ def seq_to_hp(sequence):
 
 
 if __name__ == "__main__":
-    pass
+    filename = "./data/A0A0C5B5G6.fasta"
+    read_fasta(filename)
