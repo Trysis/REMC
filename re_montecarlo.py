@@ -1,5 +1,6 @@
 """"""
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 
 H_RES = ["V", "I", "F", "L", "M", "C", "W"]
@@ -20,7 +21,7 @@ xy_down = [0, -1]
 
 def random_pos(positions):
     """Returns a random position from the available positions."""
-    selected_index = random.randint(1, positions.shape[0]) - 1
+    selected_index = random.randint(0, len(positions) - 1)
     return positions[selected_index]
 
 
@@ -64,19 +65,23 @@ def init_coordinates(hp_sequence, random=False, dtype=np.int16):
     if not random:
         for i in range(1, len(hp_sequence)):
             positions.append([i, 0])
-    else:
+    else:  # If path is blocked before adding all residue, it will fail
         for i in range(1, len(hp_sequence)):
             np_positions = np.array(positions, dtype=dtype)
             available_position = available_adjacentPos(np_positions, i-1, dtype=dtype)
-            selected_position = random_pos(np.array(available_position))
+            selected_position = random_pos(available_position)
             positions.append(selected_position)
 
     return np.array(positions, dtype=dtype)
 
+def plot_conformation(hp_coordinates):
+    plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
+    plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
+    plt.show()
 
 if __name__ == "__main__":
     filename = "./data/A0A0C5B5G6.fasta"
     sequence = read_fasta(filename)
     hp_sequence = seq_to_hp(sequence)
     hp_coordinates = init_coordinates(hp_sequence, random=True)
-    print(hp_coordinates)
+    plot_conformation(hp_coordinates)
