@@ -35,8 +35,23 @@ def seq_to_hp(sequence):
     return hp_sequence
 
 
+def available_adjacentPos(hp_coordinates, i):
+    """Returns free position adjacent to residue i."""
+    
+
+def init_coordinates(hp_sequence, random=False):
+    positions = [[0, 0]]  # position of first residue
+    if not random:
+        for i in range(1, len(hp_sequence)):
+            positions.append([i, 0])
+    else:
+        pass
+    return np.array(positions)
+
 if __name__ == "__main__":
     filename = "./data/A0A0C5B5G6.fasta"
     sequence = read_fasta(filename)
     hp_sequence = seq_to_hp(sequence)
-    print(hp_sequence)
+    hp_coordinates = init_coordinates(hp_sequence)
+
+    print(hp_coordinates)
