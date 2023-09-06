@@ -57,33 +57,47 @@ def adjacent_positions(position, dtype=np.int16):
 
 def free_adjacent_positions(hp_coordinates, i, dtype=np.int16):
     """Returns free position adjacent to residue i."""
-    adjacent_positions = adjacent_positions(hp_coordinates[i], dtype=dtype)
+    adjacent_pos = adjacent_positions(hp_coordinates[i], dtype=dtype)
     available_positions = []
-    for adja_pos_i in adjacent_positions:
-        if adja_pos_i not in hp_coordinates.tolist():
+    for adja_pos_i in adjacent_pos:
+        if adja_pos_i not in hp_coordinates:
             available_positions.append(adja_pos_i)
 
     return available_positions
 
 
-def topological_neighbour(hp_coordinates, i, dtype=np.int16):
-    pass
-
 def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
     positions = [[0, 0]]  # position of first residue
+    # Coordinates are aligned
     if not random:
         for i in range(1, len(hp_sequence)):
-            positions.append([i, 0])
-    else:  # If path is blocked before adding all residue, it will fail
-        # TODO : Parcours en largeur, ou profondeur avec choix random (selon la taille de la séquence)
-        for i in range(1, len(hp_sequence)):
-            np_positions = np.array(positions, dtype=dtype)
-            available_position = free_adjacent_positions(np_positions, i-1, dtype=dtype)
-            select_index = random_index(available_position)
-            selected_position = available_position[select_index]
+            positions.append([positions[0][0] + i, positions[0][1]])
+    # The path chosen is to be set at random
+    elif random:
+        i = 0
+        moves = [[]] * (len(hp_sequence) - 1)
+        while(len(positions) != len(hp_sequence)):
+            available_positions = free_adjacent_positions(positions, i, dtype=dtype)
+            # If path is blocked we 
+            if len(available_positions) == 0:
+                while(len(moves[i-1]) == 0):
+                    i = i - 1
+                available_positions = moves[i-1]
+                positions = positions[:i]
+                i = i - 1
+            # Else path is selected
+            selected_index = random_index(available_positions)
+            selected_position = available_positions.pop(selected_index)
             positions.append(selected_position)
+            moves[i] = available_positions
+            
+            i = i + 1
 
     return np.array(positions, dtype=dtype)
+
+
+def topological_neighbour(hp_coordinates, i, dtype=np.int16):
+    pass
 
 
 def plot_conformation(hp_coordinates):
@@ -96,6 +110,6 @@ if __name__ == "__main__":
     filename = "./data/A0A0C5B5G6.fasta"
     sequence = read_fasta(filename)
     hp_sequence = sequence_to_HP(sequence)
-    hp_coordinates = initialize_coordinates(hp_sequence, random=False)
+    hp_coordinates = initialize_coordinates(hp_sequence, random=True)
     plot_conformation(hp_coordinates)
 
