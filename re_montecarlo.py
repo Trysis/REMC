@@ -19,11 +19,6 @@ xy_right = [1, 0]
 xy_left = [-1, 0]
 xy_down = [0, -1]
 
-def random_pos(positions):
-    """Returns a random position from the available positions."""
-    selected_index = random.randint(0, len(positions) - 1)
-    return positions[selected_index]
-
 
 def read_fasta(filename):
     """Read the first fasta sequence and returns its sequence."""
@@ -40,7 +35,7 @@ def read_fasta(filename):
     return sequence
 
 
-def seq_to_hp(sequence):
+def sequence_to_HP(sequence):
     """Convert protein sequence to its corresponding HP sequence."""
     sequence = sequence.upper()
     hp_sequence = ""
@@ -49,18 +44,32 @@ def seq_to_hp(sequence):
     return hp_sequence
 
 
-def available_adjacentPos(hp_coordinates, i, dtype=np.int16):
+def random_index(positions):
+    """Return a random index from the available indices."""
+    selected_index = random.randint(0, len(positions) - 1)
+    return selected_index
+
+
+def adjacent_positions(position, dtype=np.int16):
+    moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
+    adjacent_positions = moves + np.array(position)
+    return adjacent_positions.tolist()
+
+def free_adjacent_positions(hp_coordinates, i, dtype=np.int16):
     """Returns free position adjacent to residue i."""
-    movements = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
-    adjacent_pos = movements + hp_coordinates[i]
-    available_pos = []
-    for i in adjacent_pos.tolist():
-        if i not in hp_coordinates.tolist():
-            available_pos.append(i)
+    adjacent_positions = adjacent_positions(hp_coordinates[i], dtype=dtype)
+    available_positions = []
+    for adja_pos_i in adjacent_positions:
+        if adja_pos_i not in hp_coordinates.tolist():
+            available_positions.append(adja_pos_i)
 
-    return available_pos
+    return available_positions
 
-def init_coordinates(hp_sequence, random=False, dtype=np.int16):
+
+def topological_neighbour(hp_coordinates, i, dtype=np.int16):
+    pass
+
+def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
     positions = [[0, 0]]  # position of first residue
     if not random:
         for i in range(1, len(hp_sequence)):
@@ -69,20 +78,24 @@ def init_coordinates(hp_sequence, random=False, dtype=np.int16):
         # TODO : Parcours en largeur, ou profondeur avec choix random (selon la taille de la séquence)
         for i in range(1, len(hp_sequence)):
             np_positions = np.array(positions, dtype=dtype)
-            available_position = available_adjacentPos(np_positions, i-1, dtype=dtype)
-            selected_position = random_pos(available_position)
+            available_position = free_adjacent_positions(np_positions, i-1, dtype=dtype)
+            select_index = random_index(available_position)
+            selected_position = available_position[select_index]
             positions.append(selected_position)
 
     return np.array(positions, dtype=dtype)
+
 
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
     plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
     plt.show()
 
+
 if __name__ == "__main__":
     filename = "./data/A0A0C5B5G6.fasta"
     sequence = read_fasta(filename)
-    hp_sequence = seq_to_hp(sequence)
-    hp_coordinates = init_coordinates(hp_sequence, random=True)
+    hp_sequence = sequence_to_HP(sequence)
+    hp_coordinates = initialize_coordinates(hp_sequence, random=False)
     plot_conformation(hp_coordinates)
+
