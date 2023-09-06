@@ -78,7 +78,7 @@ def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
         moves = [[]] * (len(hp_sequence) - 1)
         while(len(positions) != len(hp_sequence)):
             available_positions = free_adjacent_positions(positions, i, dtype=dtype)
-            # If path is blocked we 
+            # If path is blocked we backtrack
             if len(available_positions) == 0:
                 while(len(moves[i-1]) == 0):
                     i = i - 1
@@ -90,14 +90,22 @@ def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
             selected_position = available_positions.pop(selected_index)
             positions.append(selected_position)
             moves[i] = available_positions
-            
             i = i + 1
 
     return np.array(positions, dtype=dtype)
 
 
+def adjacent_neighbour(hp_coordinates, i, dtype=np.int16):
+    left = hp_coordinates[i-1] if i > 0 else None
+    right = hp_coordinates[i+1] if i < (len(hp_coordinates) - 1) else None
+    if left is None:
+        return [right]
+    if right is None:
+        return [left]
+    return [left, right]
+
 def topological_neighbour(hp_coordinates, i, dtype=np.int16):
-    pass
+    
 
 
 def plot_conformation(hp_coordinates):
@@ -112,4 +120,5 @@ if __name__ == "__main__":
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
     plot_conformation(hp_coordinates)
+    print()
 
