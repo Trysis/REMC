@@ -51,16 +51,20 @@ def random_index(positions):
 
 
 def adjacent_positions(position, dtype=np.int16):
+    """Returns positions adjacent to the chosen {position}."""
     moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
-    adjacent_positions = moves + np.array(position)
-    return adjacent_positions.tolist()
+    adjacent_pos = moves + np.array(position)
+    return adjacent_pos.tolist()
 
-def free_adjacent_positions(hp_coordinates, i, dtype=np.int16):
-    """Returns free position adjacent to residue i."""
+
+def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
+    """Returns free (or non-free) position adjacent to residue {i}."""
     adjacent_pos = adjacent_positions(hp_coordinates[i], dtype=dtype)
     available_positions = []
     for adja_pos_i in adjacent_pos:
-        if adja_pos_i not in hp_coordinates:
+        if not nonfree and (adja_pos_i not in hp_coordinates):
+            available_positions.append(adja_pos_i)
+        if nonfree and (adja_pos_i in hp_coordinates):
             available_positions.append(adja_pos_i)
 
     return available_positions
@@ -95,22 +99,58 @@ def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
     return np.array(positions, dtype=dtype)
 
 
-def adjacent_neighbour(hp_coordinates, i, dtype=np.int16):
-    left = hp_coordinates[i-1] if i > 0 else None
-    right = hp_coordinates[i+1] if i < (len(hp_coordinates) - 1) else None
-    if left is None:
-        return [right]
-    if right is None:
-        return [left]
-    return [left, right]
+def adjacent_neighbour(hp_coordinates, i, return_index=False):
+    """Returns the coordinates (or index) of adjacent existant neighbours."""
+    left = hp_coordinates[i-1].tolist() if i > 0 else None
+    right = hp_coordinates[i+1].tolist() if i < (len(hp_coordinates) - 1) else None
+    adjacent_pos = []
+    if return_index:
+        if left is not None:
+            adjacent_pos.append(i-1)
+        if right is not None:
+            adjacent_pos.append(i+1)
+    else:
+        if left is not None:
+            adjacent_pos.append(left)
+        if right is not None:
+            adjacent_pos.append(right)
+    return adjacent_pos
 
-def topological_neighbour(hp_coordinates, i, dtype=np.int16):
+
+def topological_neighbour(hp_coordinates, i):
+    """Returns the coordinates of topological neighbours."""
+    adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
+    i = i - 1 if (i-1) in adjacent_nei_index else i
+    # Mask to remove i-1 & i+1 neighbour
+    mask = np.ones(len(hp_coordinates), dtype=bool)
+    mask[np.array(adjacent_nei_index)] = 0
+    # Coordinates without adjacent neighbour
+    hp_coordinates = hp_coordinates[mask].tolist()
+    topological_positions = free_adjacent_positions(hp_coordinates, i, nonfree=True)
+    return topological_positions
     
+
+def available_end_moves(hp_coordinates, i):
+    """Returns available end moves positions from the first or last residue {i}."""
+    if (i != 0) or (i != len(hp_coordinates)-1):
+        return []
+    adjacent_nei = adjacent_neighbour(hp_coordinates, i, return_index=True)
+    adjacent_pos = free_adjacent_positions(hp_coordinates, adjacent_nei)
+    return adjacent_pos
+
+
+def available_pull_moves(hp_coordinates, i):
+    pass
 
 
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
     plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
+    min_xy = min([i[0] for i in hp_coordinates] + [i[1] for i in hp_coordinates])
+    max_xy = max([i[0] for i in hp_coordinates] + [i[1] for i in hp_coordinates])
+
+    #plt.xticks(np.arange(min_xy, max_xy, step=1))
+    #plt.yticks(np.arange(min_xy, max_xy, step=1))
     plt.show()
 
 
@@ -119,6 +159,7 @@ if __name__ == "__main__":
     sequence = read_fasta(filename)
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
+    for i in range(len(hp_coordinates)):
+        print(topological_neighbour(hp_coordinates, i))
     plot_conformation(hp_coordinates)
-    print()
 
