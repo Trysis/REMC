@@ -80,6 +80,16 @@ def random_index(positions):
     return selected_index
 
 
+def rotate_position(position, clockwise=True):
+    """Perform a 90 degree rotation to the specified position."""
+    x, y = position[0], position[1]
+    if clockwise:
+        position[0], position[1] = y, -x
+    elif not clockwise:
+        position[0], position[1] = -y, x
+    return position
+
+
 def adjacent_positions(position, dtype=np.int16):
     """Returns positions adjacent to the chosen {position}."""
     moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
@@ -142,13 +152,19 @@ def available_end_moves(hp_coordinates, i):
         return []
     
     adjacent_nei = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    print(adjacent_nei)
     adjacent_pos = free_adjacent_positions(hp_coordinates, adjacent_nei[0])
     return adjacent_pos
 
 
 def available_pull_moves(hp_coordinates, i):
-    pass
+    """Returns the available pull move position from a residue comprised in 1 to n-1."""
+    if ((i == 0) or (i == len(hp_coordinates)-1)):
+        return []
+
+    adjacent_pos = adjacent_neighbour(hp_coordinates, i, return_index=True)
+    adjacent_pos_left = adjacent_neighbour(hp_coordinates, adjacent_pos[0])
+    adjacent_pos_right = adjacent_neighbour(hp_coordinates, adjacent_pos[1])
+    
 
 
 def available_crank_shaft_moves(hp_coordinates, i):
