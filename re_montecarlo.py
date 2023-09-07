@@ -44,33 +44,8 @@ def sequence_to_HP(sequence):
     return hp_sequence
 
 
-def random_index(positions):
-    """Return a random index from the available indices."""
-    selected_index = random.randint(0, len(positions) - 1)
-    return selected_index
-
-
-def adjacent_positions(position, dtype=np.int16):
-    """Returns positions adjacent to the chosen {position}."""
-    moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
-    adjacent_pos = moves + np.array(position)
-    return adjacent_pos.tolist()
-
-
-def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
-    """Returns free (or non-free) position adjacent to residue {i}."""
-    adjacent_pos = adjacent_positions(hp_coordinates[i], dtype=dtype)
-    available_positions = []
-    for adja_pos_i in adjacent_pos:
-        if not nonfree and (adja_pos_i not in hp_coordinates):
-            available_positions.append(adja_pos_i)
-        if nonfree and (adja_pos_i in hp_coordinates):
-            available_positions.append(adja_pos_i)
-
-    return available_positions
-
-
 def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
+    """Returns a set of coordinates for the associated sequence."""
     positions = [[0, 0]]  # position of first residue
     # Coordinates are aligned
     if not random:
@@ -97,6 +72,37 @@ def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
             i = i + 1
 
     return np.array(positions, dtype=dtype)
+
+
+def random_index(positions):
+    """Return a random index from the available indices."""
+    selected_index = random.randint(0, len(positions) - 1)
+    return selected_index
+
+
+def adjacent_positions(position, dtype=np.int16):
+    """Returns positions adjacent to the chosen {position}."""
+    moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
+    adjacent_pos = moves + np.array(position)
+    return adjacent_pos.tolist()
+
+
+def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
+    """Returns free (or non-free) position adjacent to residue {i}."""
+    if isinstance(hp_coordinates, np.ndarray):
+        hp_coordinates = hp_coordinates.tolist()
+    if not isinstance(hp_coordinates, list):
+        hp_coordinates = list(hp_coordinates)
+
+    adjacent_pos = adjacent_positions(hp_coordinates[i], dtype=dtype)
+    available_positions = []
+    for adja_pos_i in adjacent_pos:
+        if (not nonfree) and (adja_pos_i not in hp_coordinates):
+            available_positions.append(adja_pos_i)
+        if nonfree and (adja_pos_i in hp_coordinates):
+            available_positions.append(adja_pos_i)
+
+    return available_positions
 
 
 def adjacent_neighbour(hp_coordinates, i, return_index=False):
@@ -132,14 +138,20 @@ def topological_neighbour(hp_coordinates, i):
 
 def available_end_moves(hp_coordinates, i):
     """Returns available end moves positions from the first or last residue {i}."""
-    if (i != 0) or (i != len(hp_coordinates)-1):
+    if not ((i == 0) or (i == len(hp_coordinates)-1)):
         return []
+    
     adjacent_nei = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    adjacent_pos = free_adjacent_positions(hp_coordinates, adjacent_nei)
+    print(adjacent_nei)
+    adjacent_pos = free_adjacent_positions(hp_coordinates, adjacent_nei[0])
     return adjacent_pos
 
 
 def available_pull_moves(hp_coordinates, i):
+    pass
+
+
+def available_crank_shaft_moves(hp_coordinates, i):
     pass
 
 
@@ -159,7 +171,6 @@ if __name__ == "__main__":
     sequence = read_fasta(filename)
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
-    for i in range(len(hp_coordinates)):
-        print(topological_neighbour(hp_coordinates, i))
+    print(available_end_moves(hp_coordinates, len(hp_coordinates)-1))
     plot_conformation(hp_coordinates)
 
