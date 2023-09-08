@@ -55,6 +55,7 @@ def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
     elif random:
         i = 0
         moves = [[]] * (len(hp_sequence) - 1)
+        # While residues are not all placed
         while(len(positions) != len(hp_sequence)):
             available_positions = free_adjacent_positions(positions, i, dtype=dtype)
             # If path is blocked we backtrack
@@ -64,7 +65,7 @@ def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
                 available_positions = moves[i-1]
                 positions = positions[:i]
                 i = i - 1
-            # Else path is selected
+            # Else we define the residue position
             selected_index = random_index(available_positions)
             selected_position = available_positions.pop(selected_index)
             positions.append(selected_position)
@@ -151,8 +152,8 @@ def available_end_moves(hp_coordinates, i):
     if not ((i == 0) or (i == len(hp_coordinates)-1)):
         return []
     
-    adjacent_nei = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    adjacent_pos = free_adjacent_positions(hp_coordinates, adjacent_nei[0])
+    adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
+    adjacent_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
     return adjacent_pos
 
 
@@ -162,9 +163,13 @@ def available_pull_moves(hp_coordinates, i):
         return []
 
     adjacent_pos = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    adjacent_pos_left = adjacent_neighbour(hp_coordinates, adjacent_pos[0])
-    adjacent_pos_right = adjacent_neighbour(hp_coordinates, adjacent_pos[1])
-    
+    available_pos_left = free_adjacent_positions(hp_coordinates, adjacent_pos[0])
+    available_pos_right = free_adjacent_positions(hp_coordinates, adjacent_pos[1])
+    for available_pos in available_pos_left:
+        if available_pos in available_pos_right:
+            return available_pos
+
+    return []
 
 
 def available_crank_shaft_moves(hp_coordinates, i):
@@ -187,6 +192,8 @@ if __name__ == "__main__":
     sequence = read_fasta(filename)
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
-    print(available_end_moves(hp_coordinates, len(hp_coordinates)-1))
+    for i in range(len(hp_coordinates)):
+        print(available_pull_moves(hp_coordinates, i))
+    #print(available_end_moves(hp_coordinates, len(hp_coordinates)-1))
     plot_conformation(hp_coordinates)
 
