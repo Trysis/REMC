@@ -98,24 +98,6 @@ def adjacent_positions(position, dtype=np.int16):
     return adjacent_pos.tolist()
 
 
-def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
-    """Returns free (or non-free) position adjacent to residue {i}."""
-    if isinstance(hp_coordinates, np.ndarray):
-        hp_coordinates = hp_coordinates.tolist()
-    if not isinstance(hp_coordinates, list):
-        hp_coordinates = list(hp_coordinates)
-
-    adjacent_pos = adjacent_positions(hp_coordinates[i], dtype=dtype)
-    available_positions = []
-    for adja_pos_i in adjacent_pos:
-        if (not nonfree) and (adja_pos_i not in hp_coordinates):
-            available_positions.append(adja_pos_i)
-        if nonfree and (adja_pos_i in hp_coordinates):
-            available_positions.append(adja_pos_i)
-
-    return available_positions
-
-
 def adjacent_neighbour(hp_coordinates, i, return_index=False):
     """Returns the coordinates (or index) of adjacent existant neighbours."""
     left = hp_coordinates[i-1].tolist() if i > 0 else None
@@ -134,17 +116,46 @@ def adjacent_neighbour(hp_coordinates, i, return_index=False):
     return adjacent_pos
 
 
-def topological_neighbour(hp_coordinates, i):
+def topological_neighbour(hp_coordinates, i, return_index=False):
     """Returns the coordinates of topological neighbours."""
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    i = i - 1 if (i-1) in adjacent_nei_index else i
+    i_shifted = i - 1 if (i-1) in adjacent_nei_index else i
+
     # Mask to remove i-1 & i+1 neighbour
-    mask = np.ones(len(hp_coordinates), dtype=bool)
+    mask = np.ones(len(hp_coordinates), dtype=bool)  # full of ones
     mask[np.array(adjacent_nei_index)] = 0
+
     # Coordinates without adjacent neighbour
-    hp_coordinates = hp_coordinates[mask].tolist()
-    topological_positions = free_adjacent_positions(hp_coordinates, i, nonfree=True)
+    hp_coordinates_nonadja = hp_coordinates[mask].tolist()
+    topological_positions = free_adjacent_positions(hp_coordinates_nonadja, i_shifted, nonfree=True)
+
+    if return_index:
+        indices = []
+        for idx, hp_position in enumerate(hp_coordinates.tolist()):
+            if hp_position in topological_positions:
+                indices.append(idx)
+        return indices
+
     return topological_positions
+
+
+def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
+    """Returns free (or non-free) position adjacent to residue {i}."""
+    if isinstance(hp_coordinates, np.ndarray):
+        hp_coordinates = hp_coordinates.tolist()
+    if not isinstance(hp_coordinates, list):
+        hp_coordinates = list(hp_coordinates)
+
+    adjacent_pos = adjacent_positions(hp_coordinates[i], dtype=dtype)
+    # 
+    selected_positions = []
+    for adja_pos_i in adjacent_pos:
+        if (not nonfree) and (adja_pos_i not in hp_coordinates):
+            selected_positions.append(adja_pos_i)
+        if nonfree and (adja_pos_i in hp_coordinates):
+            selected_positions.append(adja_pos_i)
+
+    return selected_positions
     
 
 def available_end_moves(hp_coordinates, i):
@@ -162,9 +173,10 @@ def available_pull_moves(hp_coordinates, i):
     if ((i == 0) or (i == len(hp_coordinates)-1)):
         return []
 
-    adjacent_pos = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    available_pos_left = free_adjacent_positions(hp_coordinates, adjacent_pos[0])
-    available_pos_right = free_adjacent_positions(hp_coordinates, adjacent_pos[1])
+    adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
+    available_pos_left = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
+    available_pos_right = free_adjacent_positions(hp_coordinates, adjacent_nei_index[1])
+    # Search for free position mutually adjacent to i-1 & i+1 positions
     for available_pos in available_pos_left:
         if available_pos in available_pos_right:
             return available_pos
@@ -173,9 +185,45 @@ def available_pull_moves(hp_coordinates, i):
 
 
 def available_crank_shaft_moves(hp_coordinates, i):
-    pass
+    if ((i == 0) or (i == len(hp_coordinates)-1) or len(hp_coordinates)==3):
+        return []
 
+    adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)  # i-1 & i+1
+    adjacent_nei_left_idx = adjacent_neighbour(hp_coordinates, adjacent_nei_index[0], return_index=True)  # [i-2] & i
+    adjacent_nei_right_idx = adjacent_neighbour(hp_coordinates, adjacent_nei_index[1], return_index=True)  # [i+2] & i
 
+    adjacent_nei_left_idx.remove(i)  # i-2 or nothing
+    adjacent_nei_right_idx.remove(i)  # i+2 or nothing
+
+    # Case if both i-1 & i+1 don't have neighbours
+    if len(adjacent_nei_left_idx + adjacent_nei_right_idx) == 0:
+        return []
+    
+    u_shaped = False
+    topological_nei_idx = []
+    if len(adjacent_nei_left_idx) == 1:  # i-2 exist
+        topological_nei_left_idx = topological_neighbour(hp_coordinates, adjacent_nei_left_idx[0], return_index=True)
+        for topological_idx in topological_nei_left_idx:
+            # i-2 & i+1 are topological neighbours
+            if topological_idx == adjacent_nei_index[1]:
+                topological_nei_idx.append(adjacent_nei_left_idx[0], adjacent_nei_index[1])
+                u_shaped = True
+                break
+
+    elif len(adjacent_nei_right_idx) == 1:  # i+2 exist
+        topological_nei_right_idx = topological_neighbour(hp_coordinates, adjacent_nei_right_idx[0], return_index=True)
+        for topological_idx in topological_nei_right_idx:
+            # i-1 & i+2 are topological neighbours
+            if topological_idx == adjacent_nei_index[0]:
+                topological_nei_idx.append(adjacent_nei_index[0], adjacent_nei_right_idx[0])
+                u_shaped = True
+                break
+    
+    if not u_shaped:
+        return []
+    
+    # free positions
+    
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
     plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
@@ -194,6 +242,9 @@ if __name__ == "__main__":
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
     for i in range(len(hp_coordinates)):
         print(available_pull_moves(hp_coordinates, i))
-    #print(available_end_moves(hp_coordinates, len(hp_coordinates)-1))
+    print(available_end_moves(hp_coordinates, len(hp_coordinates)-1))
+    print()
+    print(topological_neighbour(hp_coordinates, len(hp_coordinates)-1, return_index=False))
+    print(topological_neighbour(hp_coordinates, len(hp_coordinates)-1, return_index=True))
     plot_conformation(hp_coordinates)
 
