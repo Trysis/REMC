@@ -91,6 +91,14 @@ def rotate_position(position, clockwise=True):
     return position
 
 
+def is_adjacent(position1, position2, dtype=np.int16):
+    if position1[0] == position2[0]:
+        return np.abs(position1[1] - position2[1]) == 1
+    if position1[1] == position2[1]:
+        return np.abs(position1[0] - position2[0]) == 1
+    return False
+
+
 def adjacent_positions(position, dtype=np.int16):
     """Returns positions adjacent to the chosen {position}."""
     moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
@@ -164,8 +172,8 @@ def available_end_moves(hp_coordinates, i):
         return []
     
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    adjacent_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
-    return adjacent_pos
+    available_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
+    return available_pos
 
 
 def available_pull_moves(hp_coordinates, i):
@@ -186,7 +194,7 @@ def available_pull_moves(hp_coordinates, i):
 
 def available_crank_shaft_moves(hp_coordinates, i):
     if ((i == 0) or (i == len(hp_coordinates)-1) or len(hp_coordinates)==3):
-        return []
+        return [], []
 
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)  # i-1 & i+1
     adjacent_nei_left_idx = adjacent_neighbour(hp_coordinates, adjacent_nei_index[0], return_index=True)  # [i-2] & i
@@ -194,35 +202,48 @@ def available_crank_shaft_moves(hp_coordinates, i):
 
     adjacent_nei_left_idx.remove(i)  # i-2 or nothing
     adjacent_nei_right_idx.remove(i)  # i+2 or nothing
-
-    # Case if both i-1 & i+1 don't have neighbours
-    if len(adjacent_nei_left_idx + adjacent_nei_right_idx) == 0:
-        return []
     
-    u_shaped = False
-    topological_nei_idx = []
+    # if either is True, then i is in a u-shaped conformation
+    left, right = False, False
+    to_move = []
+    topological_nei_idx = []  # either i-2 & i+1 or i-1 & i+2
     if len(adjacent_nei_left_idx) == 1:  # i-2 exist
         topological_nei_left_idx = topological_neighbour(hp_coordinates, adjacent_nei_left_idx[0], return_index=True)
         for topological_idx in topological_nei_left_idx:
             # i-2 & i+1 are topological neighbours
             if topological_idx == adjacent_nei_index[1]:
-                topological_nei_idx.append(adjacent_nei_left_idx[0], adjacent_nei_index[1])
-                u_shaped = True
-                break
+                topological_nei_idx.append(adjacent_nei_left_idx[0])
+                topological_nei_idx.append(adjacent_nei_index[1])
+                to_move.append(i-1)
+                to_move.append(i)
+                left = True
 
-    elif len(adjacent_nei_right_idx) == 1:  # i+2 exist
+    if len(adjacent_nei_right_idx) == 1:  # i+2 exist
         topological_nei_right_idx = topological_neighbour(hp_coordinates, adjacent_nei_right_idx[0], return_index=True)
         for topological_idx in topological_nei_right_idx:
             # i-1 & i+2 are topological neighbours
             if topological_idx == adjacent_nei_index[0]:
-                topological_nei_idx.append(adjacent_nei_index[0], adjacent_nei_right_idx[0])
-                u_shaped = True
-                break
+                topological_nei_idx.append(adjacent_nei_index[0])
+                topological_nei_idx.append(adjacent_nei_right_idx[0])
+                to_move.append(i)
+                to_move.append(i+1)
+                right = True
+
+    if (left == False) & (right == False):
+        return [], []
+       
+    free_adja_from_left = free_adjacent_positions(hp_coordinates, topological_nei_idx[0])
+    free_adja_from_right = free_adjacent_positions(hp_coordinates, topological_nei_idx[1])
     
-    if not u_shaped:
-        return []
+    # If an existing free position is available, the move can be performed
+    for free_left in free_adja_from_left:
+        for free_right in free_adja_from_right:
+            if is_adjacent(free_left, free_right):
+                print(left, right)
+                return [free_left, free_right], to_move
     
-    # free positions
+    return [], []
+
     
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
@@ -232,7 +253,7 @@ def plot_conformation(hp_coordinates):
 
     #plt.xticks(np.arange(min_xy, max_xy, step=1))
     #plt.yticks(np.arange(min_xy, max_xy, step=1))
-    plt.show()
+    
 
 
 if __name__ == "__main__":
@@ -240,11 +261,16 @@ if __name__ == "__main__":
     sequence = read_fasta(filename)
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
+    available_list = []
     for i in range(len(hp_coordinates)):
-        print(available_pull_moves(hp_coordinates, i))
-    print(available_end_moves(hp_coordinates, len(hp_coordinates)-1))
-    print()
-    print(topological_neighbour(hp_coordinates, len(hp_coordinates)-1, return_index=False))
-    print(topological_neighbour(hp_coordinates, len(hp_coordinates)-1, return_index=True))
+        avail_crank = available_crank_shaft_moves(hp_coordinates, i)
+        if len(avail_crank[0]) > 0:
+            available_list.append(i)
     plot_conformation(hp_coordinates)
+    for i in available_list:
+        print(available_list)
+        plt.scatter(hp_coordinates[i, 0], hp_coordinates[i, 1])
+    
+    
+    plt.show()
 
