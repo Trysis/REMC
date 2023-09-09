@@ -252,17 +252,26 @@ def available_crank_shaft_moves(hp_coordinates, i):
                 return [free_left, free_right], to_move
     
     return [], []
+    
 
-def pull_moves_direction(hp_coordinates, i):
-    """Returns the direction where the pull moves will be performed (0° or 180°)"""
+def available_pull_moves(hp_coordinates, i):
+    """Returns the positions and residues to perform pull move on for residue {i}."""
     if (i == 0) or (i == len(hp_coordinates)-1):
         return [], []
     
-    available_adja_pos = free_adjacent_positions(hp_coordinates, i)
-    available_diag_pos
-
-def available_pull_moves(hp_coordinates, i):
-    pass
+    available_adja_pos = free_adjacent_positions(hp_coordinates, i) + hp_coordinates[i-1].tolist()
+    free_adja_from_right = free_adjacent_positions(hp_coordinates, i)
+    CL_positions = []
+    for adja_i in available_adja_pos:
+        for adja_right in free_adja_from_right:
+            if is_adjacent(adja_i, adja_right):
+                CL_positions.append([adja_i, adja_right])
+    
+    # Simplest case - Corner move - when i-1 in c position
+    for c_position, l_position in CL_positions:
+        if hp_coordinates[i-1] == c_position:
+            return available_corner_moves(hp_coordinates, i)
+    
 
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
