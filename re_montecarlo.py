@@ -20,7 +20,6 @@ xy_right = np.array([1, 0], dtype=cod_type)
 xy_left = np.array([-1, 0], dtype=cod_type)
 xy_down = np.array([0, -1], dtype=cod_type)
 
-
 def read_fasta(filename):
     """Read the first fasta sequence and returns its sequence."""
     sequence = None
@@ -163,7 +162,7 @@ def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
         hp_coordinates = list(hp_coordinates)
 
     adjacent_pos = adjacent_positions(hp_coordinates[i], dtype=dtype)
-    # 
+    # Free/Non-free selected positions
     selected_positions = []
     for adja_pos_i in adjacent_pos:
         if (not nonfree) and (adja_pos_i not in hp_coordinates):
@@ -181,21 +180,22 @@ def available_end_moves(hp_coordinates, i):
         return []
     
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    available_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
-    return available_pos
+    available_adja_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
+    return available_adja_pos
 
 
-def available_pull_moves(hp_coordinates, i):
-    """Returns the available pull move position from a residue comprised in 1 to n-1."""
+#TODO : return a tuple of [index], [position]
+def available_corner_moves(hp_coordinates, i):
+    """Returns the available corner move position from a residue comprised in 1 to n-1."""
     if ((i == 0) or (i == len(hp_coordinates)-1)):
         return []
 
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
-    available_pos_left = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
-    available_pos_right = free_adjacent_positions(hp_coordinates, adjacent_nei_index[1])
+    available_adja_pos_left = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
+    available_adja_pos_right = free_adjacent_positions(hp_coordinates, adjacent_nei_index[1])
     # Search for free position mutually adjacent to i-1 & i+1 positions
-    for available_pos in available_pos_left:
-        if available_pos in available_pos_right:
+    for available_pos in available_adja_pos_left:
+        if available_pos in available_adja_pos_right:
             return available_pos
 
     return []
@@ -215,7 +215,7 @@ def available_crank_shaft_moves(hp_coordinates, i):
     # if either is True, then i is in a u-shaped conformation
     left, right = False, False
     to_move = []
-    topological_nei_idx = []  # either i-2 & i+1 or i-1 & i+2
+    topological_nei_idx = []  # will contains either i-2 & i+1 or i-1 & i+2 or nothing
     if len(adjacent_nei_left_idx) == 1:  # i-2 exist
         topological_nei_left_idx = topological_neighbour(hp_coordinates, adjacent_nei_left_idx[0], return_index=True)
         for topological_idx in topological_nei_left_idx:
@@ -255,6 +255,11 @@ def available_crank_shaft_moves(hp_coordinates, i):
 
 def pull_moves_direction(hp_coordinates, i):
     """Returns the direction where the pull moves will be performed (0° or 180°)"""
+    if (i == 0) or (i == len(hp_coordinates)-1):
+        return [], []
+    
+    available_adja_pos = free_adjacent_positions(hp_coordinates, i)
+    available_diag_pos
 
 def available_pull_moves(hp_coordinates, i):
     pass
