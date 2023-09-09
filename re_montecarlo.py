@@ -3,22 +3,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-H_RES = ["V", "I", "F", "L", "M", "C", "W"]
-OTHER_RES = ["D", "E", "K", "R", "H", "Y", "S", "T", "N", "Q"] + \
-            ["G", "A", "P"] + \
-            ["B", "Z", "X", "J", "O", "U"]  # specials
+H_RES = ("V", "I", "F", "L", "M", "C", "W")
+OTHER_RES = ("D", "E", "K", "R", "H", "Y", "S", "T", "N", "Q",
+            "G", "A", "P", \
+            "B", "Z", "X", "J", "O", "U")  # specials
 
 HP_RES = {
     **dict.fromkeys(H_RES, "H"),
     **dict.fromkeys(OTHER_RES, "P")
     }
 
+cod_type = np.int16
 # 2D
-xy_up = [0, 1]
-xy_right = [1, 0]
-xy_left = [-1, 0]
-xy_down = [0, -1]
+xy_up = np.array([0, 1], dtype=cod_type)
+xy_right = np.array([1, 0], dtype=cod_type)
+xy_left = np.array([-1, 0], dtype=cod_type)
+xy_down = np.array([0, -1], dtype=cod_type)
 
+# Diagonals
+xy_up_left = [-1, 1]
+xy_up_right = [1, 1]
+xy_down_left = [-1, -1]
+xy_down_right = [1, -1]
 
 def read_fasta(filename):
     """Read the first fasta sequence and returns its sequence."""
@@ -102,9 +108,15 @@ def is_adjacent(position1, position2, dtype=np.int16):
 def adjacent_positions(position, dtype=np.int16):
     """Returns positions adjacent to the chosen {position}."""
     moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
-    adjacent_pos = moves + np.array(position)
+    adjacent_pos = moves + position
     return adjacent_pos.tolist()
 
+def diagonally_adjacent_positions(position, dtype=np.int16):
+    """Returns diagonally adjacent position to the chosen {position}."""
+    moves_left = np.array([xy_up, xy_down], dtype=dtype) + [-1, 0]
+    moves_right = np.array([xy_up, xy_down], dtype=dtype) + [1, 0]
+    diag_adjacent_pos = np.concatenate([moves_left, moves_right]) + position
+    return diag_adjacent_pos
 
 def adjacent_neighbour(hp_coordinates, i, return_index=False):
     """Returns the coordinates (or index) of adjacent existant neighbours."""
@@ -133,8 +145,9 @@ def topological_neighbour(hp_coordinates, i, return_index=False):
     mask = np.ones(len(hp_coordinates), dtype=bool)  # full of ones
     mask[np.array(adjacent_nei_index)] = 0
 
-    # Coordinates without adjacent neighbour
+    # HP Coordinates without adjacent neighbour
     hp_coordinates_nonadja = hp_coordinates[mask].tolist()
+    # Adjacent coordinates in list without i-1 & i+1
     topological_positions = free_adjacent_positions(hp_coordinates_nonadja, i_shifted, nonfree=True)
 
     if return_index:
@@ -166,6 +179,7 @@ def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
     return selected_positions
     
 
+#TODO : return a tuple of [index], [position]
 def available_end_moves(hp_coordinates, i):
     """Returns available end moves positions from the first or last residue {i}."""
     if not ((i == 0) or (i == len(hp_coordinates)-1)):
@@ -244,7 +258,12 @@ def available_crank_shaft_moves(hp_coordinates, i):
     
     return [], []
 
-    
+def pull_moves_direction(hp_coordinates, i):
+    """Returns the direction where the pull moves will be performed (0° or 180°)"""
+
+def available_pull_moves(hp_coordinates, i):
+    pass
+
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
     plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
