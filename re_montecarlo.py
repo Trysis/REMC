@@ -171,9 +171,8 @@ def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
             selected_positions.append(adja_pos_i)
 
     return selected_positions
-    
 
-#TODO : return a tuple of [index], [position]
+
 def available_end_moves(hp_coordinates, i):
     """Returns available end moves positions from the first or last residue {i}."""
     if not ((i == 0) or (i == len(hp_coordinates)-1)):
@@ -184,7 +183,6 @@ def available_end_moves(hp_coordinates, i):
     return [i], available_adja_pos
 
 
-#TODO : return a tuple of [index], [position]
 def available_corner_moves(hp_coordinates, i):
     """Returns the available corner move position from a residue comprised in 1 to n-1."""
     if ((i == 0) or (i == len(hp_coordinates)-1)):
@@ -289,6 +287,9 @@ def available_pull_moves(hp_coordinates, i):
         j = j - 1
     return to_move, available_pos
 
+
+def conformation_energy(hp_sequence, hp_coordinates):
+    pass
 
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
