@@ -177,18 +177,18 @@ def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
 def available_end_moves(hp_coordinates, i):
     """Returns available end moves positions from the first or last residue {i}."""
     if not ((i == 0) or (i == len(hp_coordinates)-1)):
-        return []
+        return [], []
     
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
     available_adja_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
-    return available_adja_pos
+    return [i], available_adja_pos
 
 
 #TODO : return a tuple of [index], [position]
 def available_corner_moves(hp_coordinates, i):
     """Returns the available corner move position from a residue comprised in 1 to n-1."""
     if ((i == 0) or (i == len(hp_coordinates)-1)):
-        return []
+        return [], []
 
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
     available_adja_pos_left = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
@@ -196,9 +196,9 @@ def available_corner_moves(hp_coordinates, i):
     # Search for free position mutually adjacent to i-1 & i+1 positions
     for available_pos in available_adja_pos_left:
         if available_pos in available_adja_pos_right:
-            return available_pos
+            return [i], available_pos
 
-    return []
+    return [], []
 
 
 def available_crank_shaft_moves(hp_coordinates, i):
@@ -248,8 +248,7 @@ def available_crank_shaft_moves(hp_coordinates, i):
     for free_left in free_adja_from_left:
         for free_right in free_adja_from_right:
             if is_adjacent(free_left, free_right):
-                print(left, right)
-                return [free_left, free_right], to_move
+                return to_move, [free_left, free_right]
     
     return [], []
     
@@ -259,19 +258,36 @@ def available_pull_moves(hp_coordinates, i):
     if (i == 0) or (i == len(hp_coordinates)-1):
         return [], []
     
-    available_adja_pos = free_adjacent_positions(hp_coordinates, i) + hp_coordinates[i-1].tolist()
-    free_adja_from_right = free_adjacent_positions(hp_coordinates, i)
+    i_left = hp_coordinates[i-1].tolist()
+    available_adja_pos = free_adjacent_positions(hp_coordinates, i) + [i_left]
+    free_adja_from_right = free_adjacent_positions(hp_coordinates, i+1)
+    print(f"{available_adja_pos = }")
+    print(f"{free_adja_from_right = }")
     CL_positions = []
     for adja_i in available_adja_pos:
         for adja_right in free_adja_from_right:
             if is_adjacent(adja_i, adja_right):
                 CL_positions.append([adja_i, adja_right])
-    
+
     # Simplest case - Corner move - when i-1 in c position
-    for c_position, l_position in CL_positions:
-        if hp_coordinates[i-1] == c_position:
+    for c_position, _ in CL_positions:
+        if i_left == c_position:
             return available_corner_moves(hp_coordinates, i)
-    
+
+    # No moves can be performed
+    if len(CL_positions) == 0:
+        return [], []
+
+    # In case if the movement can be performed on multiple direction
+    selected_index = random_index(CL_positions)
+    selected_CL = CL_positions[selected_index]
+    available_pos, to_move = [selected_CL[1], selected_CL[0]], [i, i-1]
+    j = i - 1
+    while((j > 0) and not is_adjacent(available_pos[-1], hp_coordinates[j-1])):
+        available_pos.append([hp_coordinates[j+1].tolist()])
+        to_move.append(j-1)
+        j = j - 1
+    return to_move, available_pos
 
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
@@ -291,12 +307,14 @@ if __name__ == "__main__":
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
     available_list = []
     for i in range(len(hp_coordinates)):
-        avail_crank = available_crank_shaft_moves(hp_coordinates, i)
-        if len(avail_crank[0]) > 0:
+        if(i!=1): continue
+        avail_pull = available_pull_moves(hp_coordinates, i)
+        print(avail_pull)
+        if len(avail_pull[0]) > 0:
             available_list.append(i)
+    
     plot_conformation(hp_coordinates)
     for i in available_list:
-        print(available_list)
         plt.scatter(hp_coordinates[i, 0], hp_coordinates[i, 1])
     
     
