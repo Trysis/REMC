@@ -20,11 +20,6 @@ xy_right = np.array([1, 0], dtype=cod_type)
 xy_left = np.array([-1, 0], dtype=cod_type)
 xy_down = np.array([0, -1], dtype=cod_type)
 
-# Diagonals
-xy_up_left = [-1, 1]
-xy_up_right = [1, 1]
-xy_down_left = [-1, -1]
-xy_down_right = [1, -1]
 
 def read_fasta(filename):
     """Read the first fasta sequence and returns its sequence."""
