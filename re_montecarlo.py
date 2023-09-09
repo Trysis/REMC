@@ -289,6 +289,7 @@ def available_pull_moves(hp_coordinates, i):
         j = j - 1
     return to_move, available_pos
 
+
 def plot_conformation(hp_coordinates):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
     plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
@@ -307,7 +308,7 @@ if __name__ == "__main__":
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
     available_list = []
     for i in range(len(hp_coordinates)):
-        if(i!=1): continue
+        if(i!=2): continue
         avail_pull = available_pull_moves(hp_coordinates, i)
         print(avail_pull)
         if len(avail_pull[0]) > 0:
