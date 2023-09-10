@@ -272,7 +272,7 @@ def available_pull_moves(hp_coordinates, i):
         if i_left == c_position:
             return available_corner_moves(hp_coordinates, i)
 
-    # No moves can be performed
+    # No squares available (C & L positions), no moves can be performed
     if len(CL_positions) == 0:
         return [], []
 
@@ -287,12 +287,41 @@ def available_pull_moves(hp_coordinates, i):
         j = j - 1
     return to_move, available_pos
 
+def is_H(converted_residue):
+    return converted_residue == "H"
 
-def conformation_energy(hp_sequence, hp_coordinates):
-    pass
+def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
+    if len(hp_sequence) != len(hp_coordinates):
+        raise ValueError("arg1 and arg2 needs to have the same length.")
+    if not isinstance(hp_coordinates, np.ndarray):
+        hp_coordinates = np.array(hp_coordinates, dtype=dtype)
+    # Penalty score
+    H_penalty = kwargs.get("h_penalty", -1)
+    otherwise_penalty = kwargs.get("o_penalty", 0)
+    # 
+    H_indices = [i for i, res in enumerate(hp_sequence) if is_H(res)]
+    H_coordinates = hp_coordinates[H_indices, :].tolist()
+    total_energy = 0
+    n = len(hp_coordinates)
+    for h_i, h_coord_i in zip(H_indices[0: n-1], H_coordinates[0:n-1]):
+        for h_j, h_coord_j in zip(H_indices[h_i+1:n], H_coordinates[h_i+1:n]):
+            if np.abs(h_i - h_j) == 1:  # i&j are adjacent neighbour
+                continue
+            if is_adjacent(h_coord_i, h_coord_j):
+                print(h_coord_i, h_coord_j)
+                total_energy += H_penalty
+            else:
+                total_energy += otherwise_penalty
 
-def plot_conformation(hp_coordinates):
+    return total_energy
+
+
+def plot_conformation(hp_coordinates, hp_sequence=None):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
+    if hp_sequence is not None:
+        if(len(hp_coordinates) != len(hp_sequence)):
+            raise ValueError("arg1 and arg2 needs to have the same length.")
+    
     plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
     min_xy = min([i[0] for i in hp_coordinates] + [i[1] for i in hp_coordinates])
     max_xy = max([i[0] for i in hp_coordinates] + [i[1] for i in hp_coordinates])
@@ -307,18 +336,7 @@ if __name__ == "__main__":
     sequence = read_fasta(filename)
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
-    available_list = []
-    for i in range(len(hp_coordinates)):
-        if(i!=2): continue
-        avail_pull = available_pull_moves(hp_coordinates, i)
-        print(avail_pull)
-        if len(avail_pull[0]) > 0:
-            available_list.append(i)
-    
+    print(conformation_energy(hp_sequence, hp_coordinates))
     plot_conformation(hp_coordinates)
-    for i in available_list:
-        plt.scatter(hp_coordinates[i, 0], hp_coordinates[i, 1])
-    
-    
     plt.show()
 
