@@ -329,7 +329,7 @@ def metropolis_criterion(hp_sequence_i, hp_coordinates_i,
     if deltaEnergy <= 0:
         return 1.0
     else:
-        np.exp((-deltaEnergy/T)).item()
+        return np.exp((-deltaEnergy/T)).item()
 
 
 def transition_probability():
