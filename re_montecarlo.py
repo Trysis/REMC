@@ -5,7 +5,7 @@ import random
 
 H_RES = ("V", "I", "F", "L", "M", "C", "W")
 OTHER_RES = ("D", "E", "K", "R", "H", "Y", "S", "T", "N", "Q",
-            "G", "A", "P", \
+            "G", "A", "P",
             "B", "Z", "X", "J", "O", "U")  # specials
 
 HP_RES = {
@@ -303,8 +303,8 @@ def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
     H_coordinates = hp_coordinates[H_indices, :].tolist()
     total_energy = 0
     n = len(hp_coordinates)
-    for h_i, h_coord_i in zip(H_indices[0: n-1], H_coordinates[0:n-1]):
-        for h_j, h_coord_j in zip(H_indices[h_i+1:n], H_coordinates[h_i+1:n]):
+    for i, (h_i, h_coord_i) in enumerate(zip(H_indices[0: n-1], H_coordinates[0:n-1])):
+        for h_j, h_coord_j in zip(H_indices[i+1:n], H_coordinates[i+1:n]):
             if np.abs(h_i - h_j) == 1:  # i&j are adjacent neighbour
                 continue
             if is_adjacent(h_coord_i, h_coord_j):
@@ -313,6 +313,8 @@ def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
             else:
                 total_energy += otherwise_penalty
 
+    print(f"{H_indices = }\n"
+          f"{H_coordinates = }")
     return total_energy
 
 
@@ -321,7 +323,8 @@ def plot_conformation(hp_coordinates, hp_sequence=None):
     if hp_sequence is not None:
         if(len(hp_coordinates) != len(hp_sequence)):
             raise ValueError("arg1 and arg2 needs to have the same length.")
-    
+        for i, hp_letter in enumerate(hp_sequence):
+            plt.text(hp_coordinates[i, 0], hp_coordinates[i, 1], hp_letter)
     plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
     min_xy = min([i[0] for i in hp_coordinates] + [i[1] for i in hp_coordinates])
     max_xy = max([i[0] for i in hp_coordinates] + [i[1] for i in hp_coordinates])
@@ -337,6 +340,6 @@ if __name__ == "__main__":
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
     print(conformation_energy(hp_sequence, hp_coordinates))
-    plot_conformation(hp_coordinates)
+    plot_conformation(hp_coordinates, hp_sequence)
     plt.show()
 
