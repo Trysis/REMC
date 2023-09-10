@@ -291,6 +291,7 @@ def is_H(converted_residue):
     return converted_residue == "H"
 
 def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
+    """"""
     if len(hp_sequence) != len(hp_coordinates):
         raise ValueError("arg1 and arg2 needs to have the same length.")
     if not isinstance(hp_coordinates, np.ndarray):
@@ -317,6 +318,22 @@ def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
           f"{H_coordinates = }")
     return total_energy
 
+
+def metropolis_criterion(hp_sequence_i, hp_coordinates_i,
+                         hp_sequence_iplus1, hp_coordinates_iplus1, T,
+                         **kwargs
+):
+    energy_i = conformation_energy(hp_sequence_i, hp_coordinates_i, **kwargs)
+    energy_iplus1 = conformation_energy(hp_sequence_iplus1, hp_coordinates_iplus1, **kwargs)
+    deltaEnergy = energy_iplus1 - energy_i
+    if deltaEnergy <= 0:
+        return 1.0
+    else:
+        np.exp((-deltaEnergy/T)).item()
+
+
+def transition_probability():
+    pass
 
 def plot_conformation(hp_coordinates, hp_sequence=None):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
