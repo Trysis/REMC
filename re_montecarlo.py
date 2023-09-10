@@ -285,62 +285,6 @@ def available_pull_moves(hp_coordinates, i):
         j = j - 1
     return to_move, available_pos
 
-def is_H(converted_residue):
-    return converted_residue == "H"
-
-def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
-    """"""
-    if len(hp_sequence) != len(hp_coordinates):
-        raise ValueError("arg1 and arg2 needs to have the same length.")
-    if not isinstance(hp_coordinates, np.ndarray):
-        hp_coordinates = np.array(hp_coordinates, dtype=dtype)
-    # Penalty score
-    H_penalty = kwargs.get("h_penalty", -1)
-    otherwise_penalty = kwargs.get("o_penalty", 0)
-    # 
-    H_indices = [i for i, res in enumerate(hp_sequence) if is_H(res)]
-    H_coordinates = hp_coordinates[H_indices, :].tolist()
-    total_energy = 0
-    n = len(hp_coordinates)
-    for i, (h_i, h_coord_i) in enumerate(zip(H_indices[0: n-1], H_coordinates[0:n-1])):
-        for h_j, h_coord_j in zip(H_indices[i+1:n], H_coordinates[i+1:n]):
-            if np.abs(h_i - h_j) == 1:  # i&j are adjacent neighbour
-                continue
-            if is_adjacent(h_coord_i, h_coord_j):
-                print(h_coord_i, h_coord_j)
-                total_energy += H_penalty
-            else:
-                total_energy += otherwise_penalty
-
-    print(f"{H_indices = }\n"
-          f"{H_coordinates = }")
-    return total_energy
-
-
-def metropolis_criterion(hp_sequence_i, hp_coordinates_i,
-                         hp_sequence_iplus1, hp_coordinates_iplus1, T,
-                         **kwargs
-):
-    energy_i = conformation_energy(hp_sequence_i, hp_coordinates_i, **kwargs)
-    energy_iplus1 = conformation_energy(hp_sequence_iplus1, hp_coordinates_iplus1, **kwargs)
-    deltaEnergy = energy_iplus1 - energy_i
-    if deltaEnergy <= 0:
-        return 1.0
-    else:
-        return np.exp((-deltaEnergy/T)).item()
-
-
-def transition_probability(hp_sequence_i, hp_coordinates_i, T_i,
-                           hp_sequence_j, hp_coordinates_j, T_j,
-                           **kwargs
-):
-    energy_i = conformation_energy(hp_sequence_i, hp_coordinates_i, **kwargs)
-    energy_j = conformation_energy(hp_sequence_j, hp_coordinates_j, **kwargs)
-    criterion = ((1/T_j) - (1/T_i)) * (energy_i - energy_j)
-    if criterion <= 0:
-        return 1.0
-    else:
-        return np.exp(-criterion).item()
 
 def vshd_neighbourhood(hp_coordinates, i):
     available_movements = {
@@ -376,9 +320,9 @@ def pull_move_neighbourhood(hp_coordinates, i):
     # Returns available moves
     return available_movements
 
-def mc_move(hp_coordinates, i, search_neighbourhood_fc=vshd):
-    available_movements = search_neighbourhood_fc(hp_coordinates, i)
-    if len(available_movements[0]) == 0:
+def mc_move(hp_coordinates, i, neighbourhood_fct=vshd_neighbourhood):
+    available_movements = neighbourhood_fct(hp_coordinates, i)
+    if len(available_movements) == 0:
         return False, hp_coordinates
 
     # Change coordinates based on movement
@@ -388,12 +332,75 @@ def mc_move(hp_coordinates, i, search_neighbourhood_fc=vshd):
         hp_coordinates_iplus1[res_index] = res_new_pos
 
     return True, hp_coordinates_iplus1
-    
-def mc_search(hp_sequence, hp_coordinates, T,
-              steps=100
+
+def is_H(converted_residue):
+    return converted_residue == "H"
+
+def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
+    """"""
+    if len(hp_sequence) != len(hp_coordinates):
+        raise ValueError("arg1 and arg2 needs to have the same length.")
+    if not isinstance(hp_coordinates, np.ndarray):
+        hp_coordinates = np.array(hp_coordinates, dtype=dtype)
+    # Penalty score
+    H_penalty = kwargs.get("h_penalty", -1)
+    otherwise_penalty = kwargs.get("o_penalty", 0)
+    # 
+    H_indices = [i for i, res in enumerate(hp_sequence) if is_H(res)]
+    H_coordinates = hp_coordinates[H_indices, :].tolist()
+    total_energy = 0
+    n = len(hp_coordinates)
+    for i, (h_i, h_coord_i) in enumerate(zip(H_indices[0: n-1], H_coordinates[0:n-1])):
+        for h_j, h_coord_j in zip(H_indices[i+1:n], H_coordinates[i+1:n]):
+            if np.abs(h_i - h_j) == 1:  # i&j are adjacent neighbour
+                continue
+            if is_adjacent(h_coord_i, h_coord_j):
+                print(h_coord_i, h_coord_j)
+                total_energy += H_penalty
+            else:
+                total_energy += otherwise_penalty
+
+    print(f"{H_indices = }\n"
+          f"{H_coordinates = }")
+    return total_energy
+
+
+def metropolis_criterion(hp_sequence, hp_coordinates_i, hp_coordinates_iplus1, T, **kwargs):
+    energy_i = conformation_energy(hp_sequence, hp_coordinates_i, **kwargs)
+    energy_iplus1 = conformation_energy(hp_sequence, hp_coordinates_iplus1, **kwargs)
+    deltaEnergy = energy_iplus1 - energy_i
+    if deltaEnergy <= 0:
+        return 1.0
+    else:
+        return np.exp((-deltaEnergy/T)).item()
+
+def MCsearch(hp_sequence, hp_coordinates, T,
+              steps=100, neighbourhood_fct=vshd_neighbourhood
 ):
-    
-    pass
+    if len(hp_sequence) != len(hp_coordinates):
+        raise ValueError("hp_sequence and hp_coordinates "
+                         "needs to have the same length.")
+
+    conf_i = hp_sequence
+    n = len(hp_sequence)
+    for i in range(steps):
+        selected_res_idx = random.randint(0, n-1)
+        c_bis = mc_move(hp_coordinates, selected_res_idx, neighbourhood_fct)
+        c_change_prob = metropolis_criterion(hp_sequence, hp_coordinates, c_bis, T)
+        if c_change_prob == 1:
+            conf_i = c_bis
+        elif random.random() <= c_change_prob:
+            pass
+        
+def re_probability(hp_sequence, hp_coordinates_i, T_i, hp_coordinates_j, T_j, **kwargs):
+    energy_i = conformation_energy(hp_sequence, hp_coordinates_i, **kwargs)
+    energy_j = conformation_energy(hp_sequence, hp_coordinates_j, **kwargs)
+    criterion = ((1/T_j) - (1/T_i)) * (energy_i - energy_j)
+    if criterion <= 0:
+        return 1.0
+    else:
+        return np.exp(-criterion).item()
+
 
 def plot_conformation(hp_coordinates, hp_sequence=None):
     plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
