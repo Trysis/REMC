@@ -332,7 +332,28 @@ def metropolis_criterion(hp_sequence_i, hp_coordinates_i,
         return np.exp((-deltaEnergy/T)).item()
 
 
-def transition_probability():
+def transition_probability(hp_sequence_i, hp_coordinates_i, T_i,
+                           hp_sequence_j, hp_coordinates_j, T_j,
+                           **kwargs
+):
+    energy_i = conformation_energy(hp_sequence_i, hp_coordinates_i, **kwargs)
+    energy_j = conformation_energy(hp_sequence_j, hp_coordinates_j, **kwargs)
+    criterion = ((1/T_j) - (1/T_i)) * (energy_i - energy_j)
+    if criterion <= 0:
+        return 1.0
+    else:
+        return np.exp(-criterion).item()
+
+def vshd(hp_coordinates, i):
+    pass
+
+def mc_move(hp_coordinates, i, moves=vshd):
+    pass
+
+def mc_search(hp_sequence, hp_coordinates, T,
+              steps=100
+):
+    
     pass
 
 def plot_conformation(hp_coordinates, hp_sequence=None):
