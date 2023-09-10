@@ -174,17 +174,17 @@ def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
 
 
 def available_end_moves(hp_coordinates, i):
-    """Returns available end moves positions from the first or last residue {i}."""
+    """Returns an available end move position. Can be performed for the first or last residue {i}."""
     if not ((i == 0) or (i == len(hp_coordinates)-1)):
         return [], []
     
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
     available_adja_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
-    return [i], available_adja_pos
+    return [i], [random.choice(available_adja_pos)]
 
 
 def available_corner_moves(hp_coordinates, i):
-    """Returns the available corner move position from a residue comprised in 1 to n-1."""
+    """Returns an available corner move position. Residue {i} is comprised in [1; n-1]."""
     if ((i == 0) or (i == len(hp_coordinates)-1)):
         return [], []
 
@@ -209,7 +209,7 @@ def available_crank_shaft_moves(hp_coordinates, i):
 
     adjacent_nei_left_idx.remove(i)  # i-2 or nothing
     adjacent_nei_right_idx.remove(i)  # i+2 or nothing
-    
+
     # if either is True, then i is in a u-shaped conformation
     left, right = False, False
     to_move = []
@@ -238,16 +238,16 @@ def available_crank_shaft_moves(hp_coordinates, i):
 
     if (left == False) & (right == False):
         return [], []
-       
+
     free_adja_from_left = free_adjacent_positions(hp_coordinates, topological_nei_idx[0])
     free_adja_from_right = free_adjacent_positions(hp_coordinates, topological_nei_idx[1])
-    
+
     # If an existing free position is available, the move can be performed
     for free_left in free_adja_from_left:
         for free_right in free_adja_from_right:
             if is_adjacent(free_left, free_right):
                 return to_move, [free_left, free_right]
-    
+
     return [], []
     
 
@@ -259,8 +259,6 @@ def available_pull_moves(hp_coordinates, i):
     i_left = hp_coordinates[i-1].tolist()
     available_adja_pos = free_adjacent_positions(hp_coordinates, i) + [i_left]
     free_adja_from_right = free_adjacent_positions(hp_coordinates, i+1)
-    print(f"{available_adja_pos = }")
-    print(f"{free_adja_from_right = }")
     CL_positions = []
     for adja_i in available_adja_pos:
         for adja_right in free_adja_from_right:
@@ -344,12 +342,53 @@ def transition_probability(hp_sequence_i, hp_coordinates_i, T_i,
     else:
         return np.exp(-criterion).item()
 
-def vshd(hp_coordinates, i):
-    pass
+def vshd_neighbourhood(hp_coordinates, i):
+    available_movements = {
+        "end": available_end_moves(hp_coordinates, i),
+        "corner": available_corner_moves(hp_coordinates, i),
+        "crank_shaft": available_crank_shaft_moves(hp_coordinates, i)
+    }
+    # Delete non-performable moves
+    to_del = []
+    for key, (res_indices, res_positions) in available_movements.items():
+        if len(res_indices) == 0:  # No move available for the specific key
+            to_del.append(key)
 
-def mc_move(hp_coordinates, i, moves=vshd):
-    pass
+    for key in to_del:
+        del available_movements[key]
 
+    # Returns available moves
+    return available_movements
+
+def pull_move_neighbourhood(hp_coordinates, i):
+    available_movements = {
+        "pull_move": available_pull_moves(hp_coordinates, i),
+    }
+    # Delete non-performable moves
+    to_del = []
+    for key, (res_indices, res_positions) in available_movements.items():
+        if len(res_indices) == 0:  # No move available for the specific key
+            to_del.append(key)
+
+    for key in to_del:
+        del available_movements[key]
+
+    # Returns available moves
+    return available_movements
+
+def mc_move(hp_coordinates, i, search_neighbourhood_fc=vshd):
+    available_movements = search_neighbourhood_fc(hp_coordinates, i)
+    if len(available_movements[0]) == 0:
+        return False, hp_coordinates
+
+    # Change coordinates based on movement
+    hp_coordinates_iplus1 = np.copy(hp_coordinates)
+    move = random.choice(available_movements.keys())
+    for res_index, res_new_pos in available_movements[move]:
+        hp_coordinates_iplus1[res_index] = res_new_pos
+
+    return True, hp_coordinates_iplus1
+    
 def mc_search(hp_sequence, hp_coordinates, T,
               steps=100
 ):
