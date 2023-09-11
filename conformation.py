@@ -1,7 +1,8 @@
 import numpy as np
+from auxiliaries import *
 
 class Conformation:
-    def __init__(sequence, T=1, **kwargs):
+    def __init__(self, sequence, T=1, **kwargs):
         self.kwargs = kwargs
         name = kwargs.get("name", "unknown")
         hp_coordinates = kwargs.get("hp_coordinates", None)
@@ -15,7 +16,7 @@ class Conformation:
         
         self.name = name
         self._sequence = sequence
-        self.__T = T  # initial temperature
+        self._T_ini = T  # initial temperature
         self._T = T  # temperature
         self._hp_sequence = sequence_to_HP(self._sequence)
         self._hp_coordinates = hp_coordinates if hp_coordinates is not None else \
@@ -26,8 +27,8 @@ class Conformation:
 
     def __str__(self):
         to_return = f"seq={self.sequence}, T={self.T}, energy={self.energy}\n" \
-                    f"hp_seq={self.hp_sequence}" \
-                    f"coord={self.hp_coordinates}"
+                    f"hp_seq={self.hp_sequence}\n" \
+                    f"coord={self.hp_coordinates.tolist()}\n"
         return to_return
 
     @property
@@ -80,7 +81,7 @@ class Conformation:
 
     # Main functions
     def initial_temperature(self):
-        return self.__T
+        return self._T_ini
 
     def swapTemperature(self, conformation2):
         T1, T2 = self.initial_temperature(), conformation2.initial_temperature()
