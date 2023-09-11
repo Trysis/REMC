@@ -24,6 +24,12 @@ class Conformation:
                                    dtype=dtype)
         self._energy = conformation_energy(self._hp_sequence, self._hp_coordinates)
 
+    def __str__(self):
+        to_return = f"seq={self.sequence}, T={self.T}, energy={self.energy}\n" \
+                    f"hp_seq={self.hp_sequence}" \
+                    f"coord={self.hp_coordinates}"
+        return to_return
+
     @property
     def sequence(self):
         return self._sequence
@@ -72,13 +78,15 @@ class Conformation:
         """Cannot change energy without changing conformation."""
         pass
 
+    # Main functions
     def initial_temperature(self):
         return self.__T
 
     def swapTemperature(self, conformation2):
         T1, T2 = self.initial_temperature(), conformation2.initial_temperature()
-        self.T = T2
-        conformation2.T = T1
+        if T1 != T2:
+            self.T = T2
+            conformation2.T = T1
 
     def search(self, steps, neighbourhood_fct):
         self.hp_coordinates = MCsearch(hp_sequence=hp_sequence,
@@ -87,4 +95,7 @@ class Conformation:
                                        steps=steps,
                                        neighbourhood_fct=neighbourhood_fct,
                                        **self.kwargs)
-    return self.hp_coordinates
+        return self.hp_coordinates
+
+if __name__ == "__main__":
+    pass

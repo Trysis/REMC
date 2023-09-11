@@ -1,7 +1,11 @@
 """"""
+# Python default modules
+import random
+# 
 import numpy as np
 import matplotlib.pyplot as plt
-import random
+# Local module
+from conformation import Conformation
 
 H_RES = ("V", "I", "F", "L", "M", "C", "W")
 OTHER_RES = ("D", "E", "K", "R", "H", "Y", "S", "T", "N", "Q",
@@ -87,7 +91,7 @@ def random_index(positions):
     return selected_index
 
 
-def is_adjacent(position1, position2, dtype=np.int16):
+def is_adjacent(position1, position2):
     if position1[0] == position2[0]:
         return np.abs(position1[1] - position2[1]) == 1
     if position1[1] == position2[1]:
@@ -126,8 +130,8 @@ def topological_neighbour(hp_coordinates, i, return_index=False):
     i_shifted = i - 1 if (i-1) in adjacent_nei_index else i
 
     # Mask to remove i-1 & i+1 neighbour
-    mask = np.ones(len(hp_coordinates), dtype=bool)  # full of ones
-    mask[np.array(adjacent_nei_index)] = 0
+    mask = np.ones(len(hp_coordinates), dtype=bool)  # full of True
+    mask[np.array(adjacent_nei_index)] = 0  # False for i-1 & i+1 index
 
     # HP Coordinates without adjacent neighbour
     hp_coordinates_nonadja = hp_coordinates[mask].tolist()
@@ -402,7 +406,7 @@ def MCsearch(hp_sequence, hp_coordinates, T,
     return coord_i
 
 
-def REMCSimulation(conformations, optimal_energy, max_iter=10,
+def REMCSimulation(conformations, optimal_energy, max_iter,
                    steps, neighbourhood_fct=vshd_neighbourhood
 ):  
     if True:
@@ -464,7 +468,9 @@ if __name__ == "__main__":
     hp_coo_2 = MCsearch(hp_sequence, hp_coordinates, T=1, steps=10000,
                         neighbourhood_fct=pull_move_neighbourhood)
 
-    print(f"{conformation_energy(hp_sequence, hp_coo_2) = }")
-    plot_conformation(hp_coo_2, hp_sequence)
-    plt.show()
-
+    #plot_conformation(hp_coo_2, hp_sequence)
+    #plt.show()
+    conf1 = Conformation(sequence, T=1)
+    print(conf1)
+    #conf2 = Conformatin(sequence, T=1)
+    #REMCSimulation()
