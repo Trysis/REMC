@@ -21,6 +21,7 @@ xy_right = np.array([1, 0], dtype=cod_type)
 xy_left = np.array([-1, 0], dtype=cod_type)
 xy_down = np.array([0, -1], dtype=cod_type)
 
+
 def read_fasta(filename):
     """Read the first fasta sequence and returns its sequence."""
     sequence = None
@@ -76,20 +77,14 @@ def initialize_coordinates(hp_sequence, random=False, dtype=np.int16):
     return np.array(positions, dtype=dtype)
 
 
+def is_H(converted_residue):
+    return converted_residue == "H"
+
+
 def random_index(positions):
     """Return a random index from the available indices."""
     selected_index = random.randint(0, len(positions) - 1)
     return selected_index
-
-
-def rotate_position(position, clockwise=True):
-    """Perform a 90 degree rotation to the specified position."""
-    x, y = position[0], position[1]
-    if clockwise:
-        position[0], position[1] = y, -x
-    elif not clockwise:
-        position[0], position[1] = -y, x
-    return position
 
 
 def is_adjacent(position1, position2, dtype=np.int16):
@@ -105,14 +100,6 @@ def adjacent_positions(position, dtype=np.int16):
     moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
     adjacent_pos = moves + position
     return adjacent_pos.tolist()
-
-
-def diagonally_adjacent_positions(position, dtype=np.int16):
-    """Returns diagonally adjacent position to the chosen {position}."""
-    moves_left = np.array([xy_up, xy_down], dtype=dtype) + [-1, 0]
-    moves_right = np.array([xy_up, xy_down], dtype=dtype) + [1, 0]
-    diag_adjacent_pos = np.concatenate([moves_left, moves_right]) + position
-    return diag_adjacent_pos
 
 
 def adjacent_neighbour(hp_coordinates, i, return_index=False):
@@ -329,22 +316,6 @@ def pull_move_neighbourhood(hp_coordinates, i):
     return available_movements
 
 
-def mc_move(hp_coordinates, i, neighbourhood_fct=vshd_neighbourhood):
-    available_movements = neighbourhood_fct(hp_coordinates, i)
-    if len(available_movements) == 0:
-        return False, hp_coordinates
-
-    # Change coordinates based on movement
-    hp_coordinates_iplus1 = np.copy(hp_coordinates)
-    move = random.choice(list(available_movements.keys()))
-    for res_index, res_new_pos in zip(available_movements[move][0], available_movements[move][1]):
-        hp_coordinates_iplus1[res_index] = res_new_pos
-
-    return True, hp_coordinates_iplus1
-
-def is_H(converted_residue):
-    return converted_residue == "H"
-
 def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
     """"""
     if len(hp_sequence) != len(hp_coordinates):
@@ -381,6 +352,33 @@ def metropolis_criterion(hp_sequence, hp_coordinates_i, hp_coordinates_iplus1, T
     else:
         return np.exp((-deltaEnergy/T)).item()
 
+
+def re_criterion(hp_sequence, hp_coordinates_i, T_i, hp_coordinates_j, T_j, **kwargs):
+    """Replica exchange probability between two conformations."""
+    energy_i = conformation_energy(hp_sequence, hp_coordinates_i, **kwargs)
+    energy_j = conformation_energy(hp_sequence, hp_coordinates_j, **kwargs)
+    criterion = ((1/T_j) - (1/T_i)) * (energy_i - energy_j)
+    if criterion <= 0:
+        return 1.0
+    else:
+        return np.exp(-criterion).item()
+
+
+def mc_move(hp_coordinates, i, neighbourhood_fct=vshd_neighbourhood):
+    """"""
+    available_movements = neighbourhood_fct(hp_coordinates, i)
+    if len(available_movements) == 0:
+        return False, hp_coordinates
+
+    # Change coordinates based on movement
+    hp_coordinates_iplus1 = np.copy(hp_coordinates)
+    move = random.choice(list(available_movements.keys()))
+    for res_index, res_new_pos in zip(available_movements[move][0], available_movements[move][1]):
+        hp_coordinates_iplus1[res_index] = res_new_pos
+
+    return True, hp_coordinates_iplus1
+
+
 def MCsearch(hp_sequence, hp_coordinates, T,
               steps=100, neighbourhood_fct=vshd_neighbourhood
 ):
@@ -402,18 +400,19 @@ def MCsearch(hp_sequence, hp_coordinates, T,
 
     return coord_i
 
-def REMCSimulation(conf_ensemble):
-    pass
-
-        
-def re_probability(hp_sequence, hp_coordinates_i, T_i, hp_coordinates_j, T_j, **kwargs):
-    energy_i = conformation_energy(hp_sequence, hp_coordinates_i, **kwargs)
-    energy_j = conformation_energy(hp_sequence, hp_coordinates_j, **kwargs)
-    criterion = ((1/T_j) - (1/T_i)) * (energy_i - energy_j)
-    if criterion <= 0:
-        return 1.0
-    else:
-        return np.exp(-criterion).item()
+def REMCSimulation(conformations, optimal_energy, steps,
+                   neighbourhood_fct=vshd_neighbourhood
+):
+    hp_sequence = conformations[0].hp_sequence
+    best_energy = 0
+    offset = 0
+    while(best_energy > optimal_energy):
+        for replica in conformations:
+            MCsearch(hp_sequence=hp_sequence,
+                     hp_coordinates=replica.hp_coordinates,
+                     T=replica.T,
+                     steps=steps,
+                     neighbourhood_fct=neighbourhood_fct)
 
 
 def plot_conformation(hp_coordinates, hp_sequence=None):
