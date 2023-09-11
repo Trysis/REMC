@@ -14,6 +14,7 @@ HP_RES = {
     }
 
 cod_type = np.int16
+
 # 2D
 xy_up = np.array([0, 1], dtype=cod_type)
 xy_right = np.array([1, 0], dtype=cod_type)
@@ -105,12 +106,14 @@ def adjacent_positions(position, dtype=np.int16):
     adjacent_pos = moves + position
     return adjacent_pos.tolist()
 
+
 def diagonally_adjacent_positions(position, dtype=np.int16):
     """Returns diagonally adjacent position to the chosen {position}."""
     moves_left = np.array([xy_up, xy_down], dtype=dtype) + [-1, 0]
     moves_right = np.array([xy_up, xy_down], dtype=dtype) + [1, 0]
     diag_adjacent_pos = np.concatenate([moves_left, moves_right]) + position
     return diag_adjacent_pos
+
 
 def adjacent_neighbour(hp_coordinates, i, return_index=False):
     """Returns the coordinates (or index) of adjacent existant neighbours."""
@@ -180,6 +183,10 @@ def available_end_moves(hp_coordinates, i):
     
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
     available_adja_pos = free_adjacent_positions(hp_coordinates, adjacent_nei_index[0])
+    # If no existing end move position are available, then return empty lists
+    if len(available_adja_pos) == 0:
+        return [], []
+
     return [i], [random.choice(available_adja_pos)]
 
 
@@ -194,7 +201,7 @@ def available_corner_moves(hp_coordinates, i):
     # Search for free position mutually adjacent to i-1 & i+1 positions
     for available_pos in available_adja_pos_left:
         if available_pos in available_adja_pos_right:
-            return [i], available_pos
+            return [i], [available_pos]
 
     return [], []
 
@@ -279,8 +286,8 @@ def available_pull_moves(hp_coordinates, i):
     selected_CL = CL_positions[selected_index]
     available_pos, to_move = [selected_CL[1], selected_CL[0]], [i, i-1]
     j = i - 1
-    while((j > 0) and not is_adjacent(available_pos[-1], hp_coordinates[j-1])):
-        available_pos.append([hp_coordinates[j+1].tolist()])
+    while((j > 0) and not is_adjacent(available_pos[-1], hp_coordinates[j-1].tolist())):
+        available_pos.append(hp_coordinates[j+1].tolist())
         to_move.append(j-1)
         j = j - 1
     return to_move, available_pos
@@ -304,6 +311,7 @@ def vshd_neighbourhood(hp_coordinates, i):
     # Returns available moves
     return available_movements
 
+
 def pull_move_neighbourhood(hp_coordinates, i):
     available_movements = {
         "pull_move": available_pull_moves(hp_coordinates, i),
@@ -320,6 +328,7 @@ def pull_move_neighbourhood(hp_coordinates, i):
     # Returns available moves
     return available_movements
 
+
 def mc_move(hp_coordinates, i, neighbourhood_fct=vshd_neighbourhood):
     available_movements = neighbourhood_fct(hp_coordinates, i)
     if len(available_movements) == 0:
@@ -327,8 +336,8 @@ def mc_move(hp_coordinates, i, neighbourhood_fct=vshd_neighbourhood):
 
     # Change coordinates based on movement
     hp_coordinates_iplus1 = np.copy(hp_coordinates)
-    move = random.choice(available_movements.keys())
-    for res_index, res_new_pos in available_movements[move]:
+    move = random.choice(list(available_movements.keys()))
+    for res_index, res_new_pos in zip(available_movements[move][0], available_movements[move][1]):
         hp_coordinates_iplus1[res_index] = res_new_pos
 
     return True, hp_coordinates_iplus1
@@ -355,17 +364,15 @@ def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
             if np.abs(h_i - h_j) == 1:  # i&j are adjacent neighbour
                 continue
             if is_adjacent(h_coord_i, h_coord_j):
-                print(h_coord_i, h_coord_j)
                 total_energy += H_penalty
             else:
                 total_energy += otherwise_penalty
 
-    print(f"{H_indices = }\n"
-          f"{H_coordinates = }")
     return total_energy
 
 
 def metropolis_criterion(hp_sequence, hp_coordinates_i, hp_coordinates_iplus1, T, **kwargs):
+    """"""
     energy_i = conformation_energy(hp_sequence, hp_coordinates_i, **kwargs)
     energy_iplus1 = conformation_energy(hp_sequence, hp_coordinates_iplus1, **kwargs)
     deltaEnergy = energy_iplus1 - energy_i
@@ -381,16 +388,23 @@ def MCsearch(hp_sequence, hp_coordinates, T,
         raise ValueError("hp_sequence and hp_coordinates "
                          "needs to have the same length.")
 
-    conf_i = hp_sequence
+    coord_i = np.copy(hp_coordinates)
     n = len(hp_sequence)
     for i in range(steps):
         selected_res_idx = random.randint(0, n-1)
-        c_bis = mc_move(hp_coordinates, selected_res_idx, neighbourhood_fct)
-        c_change_prob = metropolis_criterion(hp_sequence, hp_coordinates, c_bis, T)
-        if c_change_prob == 1:
-            conf_i = c_bis
-        elif random.random() <= c_change_prob:
-            pass
+        changed, coord_iplus1 = mc_move(coord_i, selected_res_idx, neighbourhood_fct)
+        c_change_prob = metropolis_criterion(hp_sequence, coord_i, coord_iplus1, T)
+        if changed:
+            if c_change_prob == 1:
+                coord_i = coord_iplus1
+            elif random.random() <= c_change_prob:
+                coord_i = coord_iplus1
+
+    return coord_i
+
+def REMCSimulation(conf_ensemble):
+    pass
+
         
 def re_probability(hp_sequence, hp_coordinates_i, T_i, hp_coordinates_j, T_j, **kwargs):
     energy_i = conformation_energy(hp_sequence, hp_coordinates_i, **kwargs)
@@ -423,7 +437,13 @@ if __name__ == "__main__":
     sequence = read_fasta(filename)
     hp_sequence = sequence_to_HP(sequence)
     hp_coordinates = initialize_coordinates(hp_sequence, random=True)
-    print(conformation_energy(hp_sequence, hp_coordinates))
+    print(f"{conformation_energy(hp_sequence, hp_coordinates) = }")
     plot_conformation(hp_coordinates, hp_sequence)
+    #plt.show()
+    hp_coo_2 = MCsearch(hp_sequence, hp_coordinates, T=1, steps=10000,
+                        neighbourhood_fct=pull_move_neighbourhood)
+
+    print(f"{conformation_energy(hp_sequence, hp_coo_2) = }")
+    plot_conformation(hp_coo_2, hp_sequence)
     plt.show()
 
