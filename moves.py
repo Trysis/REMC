@@ -489,6 +489,28 @@ def pull_move_neighbourhood(hp_coordinates, i):
 
     return available_movements
 
+def hybrid_neighbourhood(p=0.5):
+    """Returns a random function between the chosen
+        neighbourhood function.
+
+    p: float
+        Probability to use the Pull moves algorithm, else VSHD
+        is performed.
+
+    Returns: function
+        It returns a function that can perform a move on residue i
+        that will returns a dictionnary containing a set of available move
+        for the chosen function. The dictionnary is structured such as
+        dict[key] = list, list.
+        The first list contains residue indices, and the second the coordinates.
+
+    """
+    if p == 1:
+        return pull_move_neighbourhood
+    if random.random() < p:
+        return pull_move_neighbourhood
+
+    return vshd_neighbourhood
 
 def conformation_energy(hp_sequence, hp_coordinates, dtype=np.int16, **kwargs):
     """Get the energy from the corresponding conformation.
