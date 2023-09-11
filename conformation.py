@@ -84,12 +84,6 @@ class Conformation:
     def initial_temperature(self):
         return self._T_ini
 
-    def swapTemperature(self, conformation2):
-        T1, T2 = self.initial_temperature(), conformation2.initial_temperature()
-        if T1 != T2:
-            self.T = T2
-            conformation2.T = T1
-
     def search(self, steps, neighbourhood_fct):
         self.hp_coordinates = MCsearch(hp_sequence=hp_sequence,
                                        hp_coordinates=replica.hp_coordinates,
@@ -99,5 +93,22 @@ class Conformation:
                                        **self.kwargs)
         return self.hp_coordinates
 
+    def swapTemperature(self, conformation2):
+        T1, T2 = self.initial_temperature(), conformation2.initial_temperature()
+        if T1 != T2:
+            self.T = T2
+            conformation2.T = T1
+
+    def replica_exchange(self, conformation2):
+        re_probability = re_criterion(hp_sequence=self.hp_sequence,
+                               hp_coordinates_i=self.hp_coordinates, T_i=self.T,
+                               hp_coordinates_j=conformation2.hp_coordinates, T_j=conformation2.T,
+                               **self.kwargs)
+        if re_probability == 1:
+            self.swapTemperature(conformation2)
+        elif random.random() <= re_probability:
+            self.swapTemperature(conformation2)
+
 if __name__ == "__main__":
-    pass
+    conf1 = Conformation("APKGGAYK")
+    print(conf1)
