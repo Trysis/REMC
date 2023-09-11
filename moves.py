@@ -19,14 +19,14 @@ XY_DOWN = np.array([0, -1], dtype=COORD_TYPE)
 
 def is_adjacent(position1, position2):
     """Check if two 2D positions are adjacent.
-    
-        position1, position2: list or np.ndarray of shape (2,)
-            array-like containing x and y coordinates at i=0 & i=1
-            indices.
-        
-        Returns: bool
-            boolean indicating if the two positions are adjacent
-            or not.
+
+    position1, position2: list or numpy.ndarray of shape (2,)
+        array-like containing x and y coordinates at i=0 & i=1
+        indices.
+
+    Returns: bool
+        boolean indicating if the two positions are adjacent
+        or not.
 
     """
     if position1[0] == position2[0]:
@@ -38,8 +38,18 @@ def is_adjacent(position1, position2):
 
 def adjacent_positions(position, dtype=np.int16):
     """Returns adjacent positions to the chosen {position}.
-    
-        position: list or np.ndarray of shape (2,)
+
+    position: list or (numpy.ndarray -> of shape (2,))
+        array-like containing x and y coordinates at i=0 & i=1
+        indices.
+
+    dtype: type
+        numpy array type for the coordinates
+
+    Returns: list -> of shape (4, 2)
+        Array containing at each index the adjacent position to
+        {position}.
+
     """
     moves = np.array([XY_UP, XY_RIGHT, XY_LEFT, XY_DOWN], dtype=dtype)
     adjacent_pos = moves + position
@@ -47,7 +57,24 @@ def adjacent_positions(position, dtype=np.int16):
 
 
 def adjacent_neighbour(hp_coordinates, i, return_index=False):
-    """Returns the coordinates (or index) of adjacent existant neighbours."""
+    """Returns the associated coordinates or index adjacent to residue {i}.
+    
+    hp_coordinates: numpy.ndarray -> of shape (n, 2)
+        array-like containing x and y coordinates for each
+        of the n residues.
+
+    i: int
+        index of the selected residue to get adjacent neighbour on.
+
+    return_index: bool
+        If True the functions return the indices of the adjacent neighbour
+        residue.
+    
+    Returns: list -> of shape (x, 2) for residue coordinates or (x ,1) for indices
+        Array containing the coordinates or indices of the adjacent neighbour of
+        residue {i}. Adjacent neighbour correspond to existing {i-1} & {i+1} residue.
+
+    """
     left = hp_coordinates[i-1].tolist() if i > 0 else None
     right = hp_coordinates[i+1].tolist() if i < (len(hp_coordinates) - 1) else None
     adjacent_pos = []
@@ -61,11 +88,30 @@ def adjacent_neighbour(hp_coordinates, i, return_index=False):
             adjacent_pos.append(left)
         if right is not None:
             adjacent_pos.append(right)
+
     return adjacent_pos
 
 
 def topological_neighbour(hp_coordinates, i, return_index=False):
-    """Returns the coordinates of topological neighbours."""
+    """Returns the coordinates of topological neighbours.
+
+    hp_coordinates: numpy.ndarray -> of shape (n, 2)
+        array-like containing x and y coordinates for each
+        of the n residues.
+
+    i: int
+        index of the selected residue to get topological neighbour on.
+
+    return_index: bool
+        If True the functions return the indices of the adjacent neighbour
+        residue.
+
+    Returns: list -> of shape (x, 2) for residue coordinates or (x ,1) for indices
+        Array containing the coordinates or indices of the topological neighbour of
+        residue {i}. Topological neighbour correspond to residue that are not adjacent
+        neighbour, but have coordinates adjacent to the residue {i}.
+
+    """
     adjacent_nei_index = adjacent_neighbour(hp_coordinates, i, return_index=True)
     i_shifted = i - 1 if (i-1) in adjacent_nei_index else i
 
@@ -77,7 +123,6 @@ def topological_neighbour(hp_coordinates, i, return_index=False):
     hp_coordinates_nonadja = hp_coordinates[mask].tolist()
     # Adjacent coordinates in list without i-1 & i+1
     topological_positions = free_adjacent_positions(hp_coordinates_nonadja, i_shifted, nonfree=True)
-
     if return_index:
         indices = []
         for idx, hp_position in enumerate(hp_coordinates.tolist()):
@@ -89,7 +134,27 @@ def topological_neighbour(hp_coordinates, i, return_index=False):
 
 
 def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
-    """Returns free (or non-free) position adjacent to residue {i}."""
+    """Returns free (or non-free) position adjacent to residue {i}.
+
+    hp_coordinates: array-like or numpy.ndarray -> of shape (n, 2)
+        array-like containing x and y coordinates for each
+        of the n residues.
+
+    i: int
+        index of the selected residue to get free/occupied positions on.
+
+    nonfree: bool
+        When true the function will return the occupied adjacent coordinates,
+        otherwise it will returns the free adjacent coordinates to residue {i}.
+
+    dtype: type
+        numpy array type for the coordinates
+
+    Returns: list -> of shape (x, 2)
+        Array containing the coordinates of the available (or occupied) adjacent
+        positions to the residue {i}.
+
+    """
     if isinstance(hp_coordinates, np.ndarray):
         hp_coordinates = hp_coordinates.tolist()
     if not isinstance(hp_coordinates, list):
@@ -108,7 +173,23 @@ def free_adjacent_positions(hp_coordinates, i, nonfree=False, dtype=np.int16):
 
 
 def available_end_moves(hp_coordinates, i):
-    """Returns an available end move position. Can be performed for the first or last residue {i}."""
+    """Returns an available end move position.
+        Can only be performed on the first or last residue {i} in (0, n-1).
+
+    hp_coordinates: numpy.ndarray -> of shape (n, 2)
+        array-like containing x and y coordinates for each
+        of the n residues.
+
+    i: int
+        index of the selected residue to get available end-moves
+        positions on.
+
+    Returns: list, list -> of shape: (x, 1), (x, 2)
+        Returns two array, the first contains the residue that is
+        to be moved and the second contains the coordinates where residue
+        in the first array can move.
+
+    """
     if not ((i == 0) or (i == len(hp_coordinates)-1)):
         return [], []
     
@@ -122,7 +203,23 @@ def available_end_moves(hp_coordinates, i):
 
 
 def available_corner_moves(hp_coordinates, i):
-    """Returns an available corner move position. Residue {i} is comprised in [1; n-1]."""
+    """Returns an available corner move position.
+        Residue {i} is comprised in [1; n-1].
+
+    hp_coordinates: numpy.ndarray -> of shape (n, 2)
+        array-like containing x and y coordinates for each
+        of the n residues.
+
+    i: int
+        index of the selected residue to get available end-moves
+        positions on.
+
+    Returns: list, list -> of shape: (x, 1), (x, 2)
+        Returns two array, the first contains the residue that is
+        to be moved and the second contains the coordinates where residue
+        in the first array can move.
+
+    """
     if ((i == 0) or (i == len(hp_coordinates)-1)):
         return [], []
 
@@ -138,6 +235,24 @@ def available_corner_moves(hp_coordinates, i):
 
 
 def available_crank_shaft_moves(hp_coordinates, i):
+    """Returns an available crank shaft move position.
+        {i} should be comprised in [1, n-1] and
+        A sequence of length 3 or less cannot perform this move.
+    
+    hp_coordinates: numpy.ndarray -> of shape (n, 2)
+        array-like containing x and y coordinates for each
+        of the n residues.
+
+    i: int
+        index of the selected residue to get available end-moves
+        positions on.
+
+    Returns: list, list -> of shape: (x, 1), (x, 2)
+        Returns two array, the first contains the residue that is
+        to be moved and the second contains the coordinates where residue
+        in the first array can move.
+
+    """
     if ((i == 0) or (i == len(hp_coordinates)-1) or len(hp_coordinates)==3):
         return [], []
 
