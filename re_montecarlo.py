@@ -380,7 +380,8 @@ def mc_move(hp_coordinates, i, neighbourhood_fct=vshd_neighbourhood):
 
 
 def MCsearch(hp_sequence, hp_coordinates, T,
-              steps=100, neighbourhood_fct=vshd_neighbourhood
+             steps=100, neighbourhood_fct=vshd_neighbourhood,
+             **kwargs
 ):
     if len(hp_sequence) != len(hp_coordinates):
         raise ValueError("hp_sequence and hp_coordinates "
@@ -391,7 +392,7 @@ def MCsearch(hp_sequence, hp_coordinates, T,
     for i in range(steps):
         selected_res_idx = random.randint(0, n-1)
         changed, coord_iplus1 = mc_move(coord_i, selected_res_idx, neighbourhood_fct)
-        c_change_prob = metropolis_criterion(hp_sequence, coord_i, coord_iplus1, T)
+        c_change_prob = metropolis_criterion(hp_sequence, coord_i, coord_iplus1, T, **kwargs)
         if changed:
             if c_change_prob == 1:
                 coord_i = coord_iplus1
@@ -400,19 +401,40 @@ def MCsearch(hp_sequence, hp_coordinates, T,
 
     return coord_i
 
-def REMCSimulation(conformations, optimal_energy, steps,
-                   neighbourhood_fct=vshd_neighbourhood
-):
+
+def REMCSimulation(conformations, optimal_energy, max_iter=10,
+                   steps, neighbourhood_fct=vshd_neighbourhood
+):  
+    if True:
+        sorted_conformation = sorted(conformations, key=lambda x: x.T)
+        if not (conformations == sorted_conformation):
+            raise ValueError(f"Temperature values are not sorted: {[i.T for i in conformations]}")
+
     hp_sequence = conformations[0].hp_sequence
+    n_iter = 0
     best_energy = 0
     offset = 0
-    while(best_energy > optimal_energy):
+    while((best_energy > optimal_energy) & (n_iter < max_iter)):
+        n_iter += 1
         for replica in conformations:
-            MCsearch(hp_sequence=hp_sequence,
-                     hp_coordinates=replica.hp_coordinates,
-                     T=replica.T,
-                     steps=steps,
-                     neighbourhood_fct=neighbourhood_fct)
+            replica.search(steps=steps, neighbourhood_fct=vshd_neighbourhood)
+            if replica.energy < best_energy:
+                best_energy = replica.energy
+        i = offset
+        while(i+1 < len(conformations)):
+            j = i + 1
+            re_probability = re_criterion(hp_sequence=hp_sequence,
+                                          hp_coordinates_i=conformation[i], T_i=conformation[i].T,
+                                          hp_coordinates_j=conformation[j], T_j=conformation[j].T,
+                                          **kwargs)
+            if re_probability == 1:
+                conformation[i].swapTemperature(conformation[j])
+            elif random.random() <= re_probability:
+                conformation[i].swapTemperature(conformation[j])
+            i = i + 2
+        offset = 1 - offset
+
+    return conformations
 
 
 def plot_conformation(hp_coordinates, hp_sequence=None):

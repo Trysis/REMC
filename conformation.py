@@ -1,3 +1,4 @@
+import numpy as np
 
 class Conformation:
     def __init__(sequence, T=1, **kwargs):
@@ -50,7 +51,9 @@ class Conformation:
     @hp_coordinates.setter
     def hp_coordinates(self, value):
         self._hp_coordinates = value
+        print(f"energy_i-1 = {self._energy}")
         self._energy = conformation_energy(self._hp_sequence, self._hp_coordinates, **self.kwargs)
+        print(f"energy_i+1 = {self._energy}")
 
     @property
     def T(self):
@@ -68,6 +71,14 @@ class Conformation:
     def energy(self, value):
         """Cannot change energy without changing conformation."""
         pass
+
+    def initial_temperature(self):
+        return self.__T
+
+    def swapTemperature(self, conformation2):
+        T1, T2 = self.initial_temperature(), conformation2.initial_temperature()
+        self.T = T2
+        conformation2.T = T1
 
     def search(self, steps, neighbourhood_fct):
         self.hp_coordinates = MCsearch(hp_sequence=hp_sequence,
