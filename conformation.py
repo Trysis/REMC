@@ -1,5 +1,6 @@
 import numpy as np
 from auxiliaries import *
+from moves import *
 
 class Conformation:
     def __init__(self, sequence, T=1, **kwargs):

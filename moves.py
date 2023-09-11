@@ -1,24 +1,34 @@
+""""""
+
 # Python default modules
 import random
-# 
+
+# Data gestion
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-
-cod_type = np.int16
+# Coordinates type
+COORD_TYPE = np.int16
 
 # 2D
-xy_up = np.array([0, 1], dtype=cod_type)
-xy_right = np.array([1, 0], dtype=cod_type)
-xy_left = np.array([-1, 0], dtype=cod_type)
-xy_down = np.array([0, -1], dtype=cod_type)
-
-
-
+XY_UP = np.array([0, 1], dtype=COORD_TYPE)
+XY_RIGHT = np.array([1, 0], dtype=COORD_TYPE)
+XY_LEFT = np.array([-1, 0], dtype=COORD_TYPE)
+XY_DOWN = np.array([0, -1], dtype=COORD_TYPE)
 
 
 def is_adjacent(position1, position2):
+    """Check if two 2D positions are adjacent.
+    
+        position1, position2: list or np.ndarray of shape (2,)
+            array-like containing x and y coordinates at i=0 & i=1
+            indices.
+        
+        Returns: bool
+            boolean indicating if the two positions are adjacent
+            or not.
+
+    """
     if position1[0] == position2[0]:
         return np.abs(position1[1] - position2[1]) == 1
     if position1[1] == position2[1]:
@@ -27,8 +37,11 @@ def is_adjacent(position1, position2):
 
 
 def adjacent_positions(position, dtype=np.int16):
-    """Returns positions adjacent to the chosen {position}."""
-    moves = np.array([xy_up, xy_right, xy_left, xy_down], dtype=dtype)
+    """Returns adjacent positions to the chosen {position}.
+    
+        position: list or np.ndarray of shape (2,)
+    """
+    moves = np.array([XY_UP, XY_RIGHT, XY_LEFT, XY_DOWN], dtype=dtype)
     adjacent_pos = moves + position
     return adjacent_pos.tolist()
 
