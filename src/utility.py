@@ -1,5 +1,7 @@
 """This class contains auxiliaries function useful for multiple cases."""
 
+import matplotlib.patches as mpatches
+
 # 3 letter code residue to -> 1 letter code residue
 RES_TO_1CODE = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
             'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N',
@@ -100,6 +102,21 @@ def atom_section(atom_id, atom_name, res_1_name, res_id, x, y, z,
     atm_record += f"{float(bfactor):6.2f}          {atom_type:>2s}{'':2s}"
 
     return atm_record
+
+
+def legend_patch(label, color="none"):
+    """Returns the corresponding label with a Patch object for matplotlib legend purposes.
+    
+    label: str
+        Character chain specifying the label
+    color: str
+        Corresponding color attribute for label
+
+    Returns: tuple {str, matplotlib.patches.Patch}
+        Specified label with Patch
+
+    """
+    return mpatches.Patch(color=color, label=label), label
 
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ class Conformation:
             Instanciate the class with the given arguments.
 
         """
-        self.kwargs = kwargs
+        # Argument retrieving
         name = kwargs.get("name", "unknown")
         hp_coordinates = kwargs.get("hp_coordinates", None)
         random_coord_initialization = kwargs.get("random", False)
@@ -60,7 +60,7 @@ class Conformation:
 
         if T <= 0:
             raise ValueError(f"Temperature={T} should be positive.")
-        
+
         if not isinstance(sequence, str):
             raise ValueError(f"The given sequence {type(sequence) = } "
                              f"should be an str.")
@@ -73,6 +73,7 @@ class Conformation:
             raise ValueError(f"The given random type={type(name)} "
                              f"should be a bool.")
 
+        self.kwargs = kwargs
         self.name = name
         self._sequence = sequence
         self.__T = T  # initial temperature
@@ -84,6 +85,7 @@ class Conformation:
                                    dtype=dtype)  # initial coordinates
         self._hp_coordinates = np.copy(self.__hp_coordinates)
         self._energy = conformation_energy(self._hp_sequence, self._hp_coordinates)
+        self._transitions = []
 
     def __str__(self):
         """Redefine the output of the function when printed (with print function)."""
@@ -124,9 +126,7 @@ class Conformation:
     @hp_coordinates.setter
     def hp_coordinates(self, value):  # Setter
         self._hp_coordinates = value
-        print(f"energy_i-1 = {self._energy}")
         self._energy = conformation_energy(self._hp_sequence, self._hp_coordinates, **self.kwargs)
-        print(f"energy_i+1 = {self._energy}")
 
     @property
     def T(self):  # Getter
@@ -144,6 +144,19 @@ class Conformation:
     def energy(self, value):  # Setter
         """Cannot change energy without changing conformation."""
         pass
+
+    @property
+    def transitions(self):
+        return self._transitions
+
+    @transitions.setter
+    def transitions(self, value):
+        if isinstance(value, np.ndarray):
+            self._transition = value.tolist()
+        if isinstance(value, list):
+            self._transition = value
+        raise ValueError("Incorrect type, transitions "
+                         "should be an array.")
 
     # Main functions
     def initial_temperature(self):
@@ -168,9 +181,9 @@ class Conformation:
             tried fold on the conformation {i}.
 
         """
-        self.hp_coordinates = MCsearch(hp_sequence=hp_sequence,
-                                       hp_coordinates=replica.hp_coordinates,
-                                       T=replica.T,
+        self.hp_coordinates = MCsearch(hp_sequence=self.hp_sequence,
+                                       hp_coordinates=self.hp_coordinates,
+                                       T=self.T,
                                        steps=steps,
                                        neighbourhood_fct=neighbourhood_fct,
                                        **self.kwargs)
@@ -210,6 +223,17 @@ class Conformation:
         elif random.random() <= re_probability:
             self.swapTemperature(conformation2)
 
+    def plot(self, **kwargs):
+        kwargs["T"] = kwargs.get("T", self.T)
+        kwargs["legend_title"] = kwargs.get("legend_title", "Conformation")
+        plot_conformation(self.hp_coordinates, self.hp_sequence, show=True, **kwargs)
+
+
 if __name__ == "__main__":
-    conf1 = Conformation("APKGGAYK")
-    print(conf1)
+    conf = Conformation("APKGGAYKVVVVVVVVVVVVAP", T=1, random=True)
+    conf2 = Conformation("APKGGAYKVVVVVVVVVVVVAP", T=1, random=True)
+    print(conf)
+    conf.plot()
+    conf.search(steps=100, neighbourhood_fct=vshd_neighbourhood)
+    conf.plot()
+    print(conf)

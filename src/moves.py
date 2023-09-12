@@ -785,15 +785,65 @@ def REMCSimulation(conformations, optimal_energy, max_iter,
     return conformations
 
 
-def plot_conformation(hp_coordinates, hp_sequence=None):
+def plot_conformation(hp_coordinates, hp_sequence=None, show=False, **kwargs):
     """Plot the given 2D conformation."""
-    plt.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
+
+    # Argument retrieving
+    size = kwargs.get("size", (10, 10))
+    title = kwargs.get("title", "")
+    xlabel = kwargs.get("xlabel", "")
+    ylabel = kwargs.get("ylabel", "")
+    top = kwargs.get("top", None)
+    bottom = kwargs.get("bottom", None)
+    temperature = kwargs.get("T", None)
+    index = kwargs.get("index", None)
+    legend_title = kwargs.get("legend_title", None)
+
+    # Figure
+    fig, ax = plt.subplots(1, 1, figsize=size)
+    ax.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
+    # Plot parameters
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(top=top, bottom=bottom)
+
     if hp_sequence is not None:
         if(len(hp_coordinates) != len(hp_sequence)):
             raise ValueError("arg1 and arg2 needs to have the same length.")
         for i, hp_letter in enumerate(hp_sequence):
-            plt.text(hp_coordinates[i, 0], hp_coordinates[i, 1], hp_letter)
-    plt.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
+            ax.text(hp_coordinates[i, 0], hp_coordinates[i, 1], hp_letter)
+
+    ax.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
+
+    # Main Legend
+    handles_main, labels_main = ax.get_legend_handles_labels()
+    if (handles_main != []) & (labels_main != []):
+        main_legend = ax.legend(handles_main, labels_main, loc="upper left")
+        ax.add_artist(main_legend)
+
+    # Loss Legend
+    if True:
+        handles, labels = [], []
+        if temperature is not None:
+            temp_patch, temp_label = legend_patch(f"T = {temperature:3.1f}")
+            handles.append(temp_patch)
+            labels.append(temp_label)
+
+        if index is not None:
+            index_patch, index_label = legend_patch(f"i = {index:10d}")
+            handles.append(index_patch)
+            labels.append(index_label)
+        
+        if len(handles) > 0:
+            set_legend = ax.legend(handles, labels, loc="best", title="Conformation",
+                                   handlelength=0, handletextpad=0)
+            ax.add_artist(set_legend)
+
+    if show:
+        plt.show()
+    
+    return fig, ax
 
 
 if __name__ == "__main__":
