@@ -100,9 +100,10 @@ rsteps = args.rsteps
 optimal_e = args.energy
 
 if __name__ == "__main__":
-    filename = args.filepath    
+    filename = args.filepath
+    basename = os.path.basename(filename)
     sequence = read_fasta(filename)
-    conformations = [Conformation(sequence, T=temp, name=f"r{i}_len={len(sequence)}", random=random_conformation) \
+    conformations = [Conformation(sequence, T=temp, name=f"{basename}_r{i}_len={len(sequence)}", random=random_conformation) \
                      for i, temp in enumerate(temperature_set)]
 
     best_replica, conformations = \

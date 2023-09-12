@@ -39,7 +39,7 @@ def read_fasta(filename):
     sequence = None
     with open(filename, "r") as fasta_in:
         header = fasta_in.readline().strip()
-        sequence = fasta_in.read().strip()
+        sequence = fasta_in.read().strip().replace("\n", "")
         last_index = sequence.find(">")
         if last_index != -1:
             sequence = sequence[:last_index]
