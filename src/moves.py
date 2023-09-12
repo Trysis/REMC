@@ -8,7 +8,6 @@ import random
 
 # Data gestion
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Local modules
 from utility import *
@@ -675,7 +674,7 @@ def mc_move(hp_coordinates, i, neighbourhood_fct=vshd_neighbourhood):
 
 def MCsearch(hp_sequence, hp_coordinates, T,
              steps=100, neighbourhood_fct=vshd_neighbourhood,
-             **kwargs
+             move_on_step=False, **kwargs
 ):
     """Try multiple fold on the given conformation.
 
@@ -700,14 +699,20 @@ def MCsearch(hp_sequence, hp_coordinates, T,
         is structured such as dict[key] = list, list.
         The first list contains residue indices, and the second the coordinates.
 
+    move_on_step: bool
+        if True, one step is equal to one movement
+        (the conformation is not obligatory conserved due to
+        the metropolis criterion)
+
     **kwargs:
         h_penalty: int (or float)
             Applied penalty when H residue are topological neighbour.
         o_penalty: int (or float)
             Applied score on the else statement of the penalty.
 
-    Returns: numpy.ndarray
-        Returns the new coordinates after {steps} iteration of
+    Returns: bool, numpy.ndarray
+        Returns a boolean indicating if the conformation has changed,
+        the new coordinates after {steps} iteration of
         tried fold on the conformation {i}.
 
     """
@@ -715,23 +720,32 @@ def MCsearch(hp_sequence, hp_coordinates, T,
         raise ValueError("hp_sequence and hp_coordinates "
                          "needs to have the same length.")
 
+    has_changed = False
     coord_i = np.copy(hp_coordinates)
     n = len(hp_sequence)
     for i in range(steps):
         selected_res_idx = random.randint(0, n-1)
         changed, coord_iplus1 = mc_move(coord_i, selected_res_idx, neighbourhood_fct)
+        if move_on_step:
+            while(not changed):
+                selected_res_idx = random.randint(0, n-1)
+                changed, coord_iplus1 = mc_move(coord_i, selected_res_idx, neighbourhood_fct)
+
         c_change_prob = metropolis_criterion(hp_sequence, coord_i, coord_iplus1, T, **kwargs)
         if changed:
             if c_change_prob == 1:
+                has_changed = True
                 coord_i = coord_iplus1
             elif random.random() <= c_change_prob:
+                has_changed = True
                 coord_i = coord_iplus1
 
-    return coord_i
+    return has_changed, coord_i
 
 
 def REMCSimulation(conformations, optimal_energy, max_iter,
-                   steps, neighbourhood_fct=vshd_neighbourhood
+                   steps, neighbourhood_fct=vshd_neighbourhood,
+                   move_on_step=False
 ):
     """Perform the Replica Exchange Monte Carlo Algorithm.
 
@@ -756,6 +770,9 @@ def REMCSimulation(conformations, optimal_energy, max_iter,
         is structured such as dict[key] = list, list.
         The first list contains residue indices, and the second the coordinates.
 
+    move_on_step: bool
+        if True, one step is equal to one movement
+
     Returns: list -> list(Conformation)
         It returns the set of modified conformations after {steps}*{max_iter}
         iterations.
@@ -768,13 +785,16 @@ def REMCSimulation(conformations, optimal_energy, max_iter,
 
     n_iter = 0
     best_energy = 0
+    best_replica = None
     offset = 0
     while((best_energy > optimal_energy) & (n_iter < max_iter)):
         n_iter += 1
         for replica in conformations:
-            replica.search(steps=steps, neighbourhood_fct=vshd_neighbourhood)
+            replica.search(steps=steps, neighbourhood_fct=vshd_neighbourhood,
+                           move_on_step=move_on_step)
             if replica.energy < best_energy:
                 best_energy = replica.energy
+                best_replica = replica
         i = offset
         while(i+1 < len(conformations)):
             j = i + 1
@@ -782,68 +802,7 @@ def REMCSimulation(conformations, optimal_energy, max_iter,
             i = i + 2
         offset = 1 - offset
 
-    return conformations
-
-
-def plot_conformation(hp_coordinates, hp_sequence=None, show=False, **kwargs):
-    """Plot the given 2D conformation."""
-
-    # Argument retrieving
-    size = kwargs.get("size", (10, 10))
-    title = kwargs.get("title", "")
-    xlabel = kwargs.get("xlabel", "")
-    ylabel = kwargs.get("ylabel", "")
-    top = kwargs.get("top", None)
-    bottom = kwargs.get("bottom", None)
-    temperature = kwargs.get("T", None)
-    index = kwargs.get("index", None)
-    legend_title = kwargs.get("legend_title", None)
-
-    # Figure
-    fig, ax = plt.subplots(1, 1, figsize=size)
-    ax.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
-    # Plot parameters
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_ylim(top=top, bottom=bottom)
-
-    if hp_sequence is not None:
-        if(len(hp_coordinates) != len(hp_sequence)):
-            raise ValueError("arg1 and arg2 needs to have the same length.")
-        for i, hp_letter in enumerate(hp_sequence):
-            ax.text(hp_coordinates[i, 0], hp_coordinates[i, 1], hp_letter)
-
-    ax.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
-
-    # Main Legend
-    handles_main, labels_main = ax.get_legend_handles_labels()
-    if (handles_main != []) & (labels_main != []):
-        main_legend = ax.legend(handles_main, labels_main, loc="upper left")
-        ax.add_artist(main_legend)
-
-    # Loss Legend
-    if True:
-        handles, labels = [], []
-        if temperature is not None:
-            temp_patch, temp_label = legend_patch(f"T = {temperature:3.1f}")
-            handles.append(temp_patch)
-            labels.append(temp_label)
-
-        if index is not None:
-            index_patch, index_label = legend_patch(f"i = {index:10d}")
-            handles.append(index_patch)
-            labels.append(index_label)
-        
-        if len(handles) > 0:
-            set_legend = ax.legend(handles, labels, loc="best", title="Conformation",
-                                   handlelength=0, handletextpad=0)
-            ax.add_artist(set_legend)
-
-    if show:
-        plt.show()
-    
-    return fig, ax
+    return best_replica, conformations
 
 
 if __name__ == "__main__":

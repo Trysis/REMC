@@ -3,6 +3,9 @@
 # Data gestion
 import numpy as np
 
+# Plot animation
+from matplotlib import animation
+
 # Local modules
 from utility import *
 from moves import *
@@ -52,6 +55,7 @@ class Conformation:
         hp_coordinates = kwargs.get("hp_coordinates", None)
         random_coord_initialization = kwargs.get("random", False)
         dtype = kwargs.get("dtype", np.int16)
+        size = kwargs.get("size", (8, 8))
 
         if hp_coordinates is not None:
             if len(sequence) != len(hp_coordinates):
@@ -74,6 +78,7 @@ class Conformation:
                              f"should be a bool.")
 
         self.kwargs = kwargs
+        self.subplot = plt.subplots(1, 1, figsize=size)
         self.name = name
         self._sequence = sequence
         self.__T = T  # initial temperature
@@ -83,9 +88,15 @@ class Conformation:
             initialize_coordinates(hp_sequence=self._hp_sequence,
                                    random=random_coord_initialization,
                                    dtype=dtype)  # initial coordinates
+
         self._hp_coordinates = np.copy(self.__hp_coordinates)
         self._energy = conformation_energy(self._hp_sequence, self._hp_coordinates)
         self._transitions = []
+        self.change_list = []
+        self.T_list = [(0, self.T)]
+        self.E_list = [self._energy]
+        self._index = 1  # count on move
+        self.iteration = 1  # count all iterations
 
     def __str__(self):
         """Redefine the output of the function when printed (with print function)."""
@@ -98,6 +109,14 @@ class Conformation:
                     f"_____________\n"
 
         return to_return
+
+    @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, value):
+        pass
 
     @property
     def sequence(self):  # Getter
@@ -155,6 +174,7 @@ class Conformation:
             self._transition = value.tolist()
         if isinstance(value, list):
             self._transition = value
+
         raise ValueError("Incorrect type, transitions "
                          "should be an array.")
 
@@ -163,7 +183,7 @@ class Conformation:
         """Returns the initial temperature of the conformation."""
         return self.__T
 
-    def search(self, steps, neighbourhood_fct):
+    def search(self, steps, neighbourhood_fct, move_on_step):
         """Perform the Monte Carlo conformation search on the conformation.
 
         steps: int
@@ -181,12 +201,22 @@ class Conformation:
             tried fold on the conformation {i}.
 
         """
-        self.hp_coordinates = MCsearch(hp_sequence=self.hp_sequence,
-                                       hp_coordinates=self.hp_coordinates,
-                                       T=self.T,
-                                       steps=steps,
-                                       neighbourhood_fct=neighbourhood_fct,
-                                       **self.kwargs)
+        for i in range(steps):
+            changed, self.hp_coordinates = MCsearch(hp_sequence=self.hp_sequence,
+                                                    hp_coordinates=self.hp_coordinates,
+                                                    T=self.T,
+                                                    steps=1,
+                                                    neighbourhood_fct=neighbourhood_fct,
+                                                    move_on_step=move_on_step,
+                                                    **self.kwargs)
+
+            self.iteration += 1
+
+            if changed:
+                self._index += 1
+                self._transitions.append(self._get_artist())
+                self.change_list.append(self.iteration-1)
+                self.E_list.append(self.energy)
 
         return self.hp_coordinates
 
@@ -199,7 +229,7 @@ class Conformation:
         Returns: None
 
         """
-        T1, T2 = self.initial_temperature(), conformation2.initial_temperature()
+        T1, T2 = self.T, conformation2.T
         if T1 != T2:
             self.T = T2
             conformation2.T = T1
@@ -215,25 +245,49 @@ class Conformation:
 
         """
         re_probability = re_criterion(hp_sequence=self.hp_sequence,
-                               hp_coordinates_i=self.hp_coordinates, T_i=self.T,
-                               hp_coordinates_j=conformation2.hp_coordinates, T_j=conformation2.T,
-                               **self.kwargs)
+                                      hp_coordinates_i=self.hp_coordinates,
+                                      T_i=self.T,
+                                      hp_coordinates_j=conformation2.hp_coordinates,
+                                      T_j=conformation2.T,
+                                      **self.kwargs)
+
+        # Swap temperature with a certain probability
         if re_probability == 1:
             self.swapTemperature(conformation2)
+            self.T_list.append((self.iteration, self.T))
         elif random.random() <= re_probability:
             self.swapTemperature(conformation2)
+            self.T_list.append((self.iteration, self.T))
 
     def plot(self, **kwargs):
+        """"""
         kwargs["T"] = kwargs.get("T", self.T)
         kwargs["legend_title"] = kwargs.get("legend_title", "Conformation")
-        plot_conformation(self.hp_coordinates, self.hp_sequence, show=True, **kwargs)
+        _, ax = plot_conformation(self.hp_coordinates, self.hp_sequence, show=True, **kwargs)
 
+    def _get_artist(self):
+        """"""
+        all_artist = plot_conformation(self.hp_coordinates, self.hp_sequence, subplot=self.subplot,
+                                       show=False, returns_artist=True, 
+                                       T=self.T, legend_title="Conformation",
+                                       index=self._index, energy=self.energy,
+                                       **self.kwargs)
+
+        return all_artist
+
+    # TODO: 2 calls will fail
+    def animate(self, fps=6, save=False, show=True, **kwargs):
+        if len(self._transitions) > 0:
+            plt_animation = animation.ArtistAnimation(self.subplot[0], self._transitions, repeat=False)
+            if save:
+                plt_animation.save(f"../img/conf_{self.name}.gif", fps=fps, dpi=300)
+
+            if show:
+                plt.show()
+
+# TODO: Generate Pymol coordinate (animation or single frame)
 
 if __name__ == "__main__":
-    conf = Conformation("APKGGAYKVVVVVVVVVVVVAP", T=1, random=True)
-    conf2 = Conformation("APKGGAYKVVVVVVVVVVVVAP", T=1, random=True)
-    print(conf)
-    conf.plot()
-    conf.search(steps=100, neighbourhood_fct=vshd_neighbourhood)
-    conf.plot()
-    print(conf)
+    conf = Conformation("APKGGAYKVVVVVVVVVVVVAP", name="test", T=1, random=False)
+    conf.search(steps=200, neighbourhood_fct=vshd_neighbourhood, move_on_step=True)
+    conf.animate(save=True)

@@ -1,5 +1,7 @@
 """This class contains auxiliaries function useful for multiple cases."""
 
+# Data Gestion
+import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 # 3 letter code residue to -> 1 letter code residue
@@ -117,6 +119,91 @@ def legend_patch(label, color="none"):
 
     """
     return mpatches.Patch(color=color, label=label), label
+
+
+def plot_conformation(hp_coordinates, hp_sequence=None, show=False,
+                      subplot=None, returns_artist=False, **kwargs):
+    """Plot the given 2D conformation."""
+
+    # Argument retrieving
+    size = kwargs.get("size", (10, 10))
+    title = kwargs.get("title", "")
+    xlabel = kwargs.get("xlabel", "")
+    ylabel = kwargs.get("ylabel", "")
+    top = kwargs.get("top", None)
+    bottom = kwargs.get("bottom", None)
+    temperature = kwargs.get("T", None)
+    index = kwargs.get("index", None)
+    energy = kwargs.get("energy", None)
+    legend_title = kwargs.get("legend_title", None)
+
+    all_artist = []
+    # Figure
+    fig, ax = plt.subplots(1, 1, figsize=size) if subplot is None else subplot
+    if returns_artist:
+        all_artist.append(ax.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1], color="grey"))
+    else:
+        ax.scatter(hp_coordinates[:, 0], hp_coordinates[:, 1])
+
+    # Plot parameters
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(top=top, bottom=bottom)
+
+    if hp_sequence is not None:
+        if(len(hp_coordinates) != len(hp_sequence)):
+            raise ValueError("arg1 and arg2 needs to have the same length.")
+        for i, hp_letter in enumerate(hp_sequence):
+            if returns_artist:
+                all_artist.append(ax.text(hp_coordinates[i, 0], hp_coordinates[i, 1], hp_letter))
+            else:
+                ax.text(hp_coordinates[i, 0], hp_coordinates[i, 1], hp_letter)
+
+    if returns_artist:
+        im, = ax.plot(hp_coordinates[:, 0], hp_coordinates[:, 1], color="orange")
+        all_artist.append(im)
+    else:
+        ax.plot(hp_coordinates[:, 0], hp_coordinates[:, 1])
+
+    # Main Legend
+    handles_main, labels_main = ax.get_legend_handles_labels()
+    if (handles_main != []) & (labels_main != []):
+        main_legend = ax.legend(handles_main, labels_main, loc="upper left")
+        ax.add_artist(main_legend)
+
+    # Loss Legend
+    if True:
+        handles, labels = [], []
+        if temperature is not None:
+            temp_patch, temp_label = legend_patch(f"T = {temperature:3.1f}")
+            handles.append(temp_patch)
+            labels.append(temp_label)
+        
+        if energy is not None:
+            index_patch, index_label = legend_patch(f"E = {energy:<4.1f}")
+            handles.append(index_patch)
+            labels.append(index_label)
+
+        if len(handles) > 0:
+            set_legend = ax.legend(handles, labels, loc="best",
+                                   title=f"Conformation {index}",
+                                   handlelength=0, handletextpad=0)
+
+            if returns_artist:
+                all_artist.append(set_legend)
+
+            ax.add_artist(set_legend)
+
+    ax.autoscale()
+
+    if show:
+        plt.show()
+
+    if returns_artist:
+        return all_artist
+
+    return fig, ax
 
 
 if __name__ == "__main__":
