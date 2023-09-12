@@ -14,4 +14,3 @@ dependencies:
   - jupyterlab
   - biopython
   - joblib
-prefix: D:\Informatique\Programmation\miniconda3\envs\BI
