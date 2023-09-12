@@ -25,7 +25,7 @@ from moves import *
 
 __authors__ = "Roude JEAN MARIE"
 __contact__ = ("roude.etu@gmail.com", "roude.bioinfo@gmail.com")
-__date__ = "01-09-2023"
+__date__ = ("01-09-2023", "14-09-2023")
 __version__ = "1.0.0"
 
 neighbourhood_algorithm = {"vshd": vshd_neighbourhood,
@@ -102,20 +102,26 @@ optimal_e = args.energy
 if __name__ == "__main__":
     filename = args.filepath
     basename = os.path.basename(filename)
-    sequence = read_fasta(filename)
+    sequence = read_fasta(filename) ; print("Reading fasta file . . .")
     conformations = [Conformation(sequence, T=temp, name=f"{basename}_r{i}_len={len(sequence)}", random=random_conformation) \
                      for i, temp in enumerate(temperature_set)]
 
+    print("Generating replicas . . .")
+    print("REMC Algorithm . . .")
     best_replica, conformations = \
             REMCSimulation(conformations=conformations,
                            optimal_energy=optimal_e, max_iter=rsteps,
                            steps=steps, neighbourhood_fct=nei_algorithm,
                            move_on_step=True)
 
+    print("Done !")
+    print("Showing Replica conformational change . . .")
     for replica in conformations:
         replica.animate(show=False, save=True, saveto=output_directory)
 
+    print("Showing best replica conformational change . . .")
     best_replica.animate(show=True, save=True, saveto=output_directory, filename="best_replica")
     best_replica.plot(initial=True, show=False, save=True, saveto=output_directory, filename="best_r_initial")
     best_replica.plot(show=False, save=True, saveto=output_directory, filename="best_r")
     best_replica.plot_energy(save=True, saveto=output_directory)
+    print("End")
