@@ -28,5 +28,5 @@ Only 2D coordinates are used in this project.
 
 ## Some Results
 
-![front-page](out/r1_len=16.gif)  
+![front-page](out/run_0/r1_len=16.gif)  
 
