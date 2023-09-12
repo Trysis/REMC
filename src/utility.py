@@ -122,7 +122,8 @@ def legend_patch(label, color="none"):
 
 
 def plot_conformation(hp_coordinates, hp_sequence=None, show=False,
-                      subplot=None, returns_artist=False, **kwargs):
+                      subplot=None, returns_artist=False, **kwargs
+):
     """Plot the given 2D conformation."""
 
     # Argument retrieving
@@ -133,7 +134,6 @@ def plot_conformation(hp_coordinates, hp_sequence=None, show=False,
     top = kwargs.get("top", None)
     bottom = kwargs.get("bottom", None)
     temperature = kwargs.get("T", None)
-    index = kwargs.get("index", None)
     energy = kwargs.get("energy", None)
     legend_title = kwargs.get("legend_title", None)
 
@@ -187,7 +187,7 @@ def plot_conformation(hp_coordinates, hp_sequence=None, show=False,
 
         if len(handles) > 0:
             set_legend = ax.legend(handles, labels, loc="best",
-                                   title=f"Conformation {index}",
+                                   title=legend_title,
                                    handlelength=0, handletextpad=0)
 
             if returns_artist:

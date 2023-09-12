@@ -790,7 +790,7 @@ def REMCSimulation(conformations, optimal_energy, max_iter,
     while((best_energy > optimal_energy) & (n_iter < max_iter)):
         n_iter += 1
         for replica in conformations:
-            replica.search(steps=steps, neighbourhood_fct=vshd_neighbourhood,
+            replica.search(steps=steps, neighbourhood_fct=neighbourhood_fct,
                            move_on_step=move_on_step)
             if replica.energy < best_energy:
                 best_energy = replica.energy
@@ -806,4 +806,5 @@ def REMCSimulation(conformations, optimal_energy, max_iter,
 
 
 if __name__ == "__main__":
-    pass
+    adj = adjacent_positions([0, 1])
+    print(adj)

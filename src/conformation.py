@@ -55,7 +55,6 @@ class Conformation:
         hp_coordinates = kwargs.get("hp_coordinates", None)
         random_coord_initialization = kwargs.get("random", False)
         dtype = kwargs.get("dtype", np.int16)
-        size = kwargs.get("size", (8, 8))
 
         if hp_coordinates is not None:
             if len(sequence) != len(hp_coordinates):
@@ -78,7 +77,6 @@ class Conformation:
                              f"should be a bool.")
 
         self.kwargs = kwargs
-        self.subplot = plt.subplots(1, 1, figsize=size)
         self.name = name
         self._sequence = sequence
         self.__T = T  # initial temperature
@@ -91,12 +89,7 @@ class Conformation:
 
         self._hp_coordinates = np.copy(self.__hp_coordinates)
         self._energy = conformation_energy(self._hp_sequence, self._hp_coordinates)
-        self._transitions = []
-        self.change_list = []
-        self.T_list = [(0, self.T)]
-        self.E_list = [self._energy]
-        self._index = 1  # count on move
-        self.iteration = 1  # count all iterations
+        self.state_ini()
 
     def __str__(self):
         """Redefine the output of the function when printed (with print function)."""
@@ -110,12 +103,28 @@ class Conformation:
 
         return to_return
 
+    def state_ini(self):
+        self._transitions = []  # coordinates at each step
+        self._index = 0  # count on move
+        self._iteration = 0  # count all iterations
+        self.T_list = [(0, self.T)]  # temperature swap at (idx, T)
+        self.E_list = [self._energy]  # energy at each step (on change)
+        self.change_list = []  # conformational change boolean list
+
     @property
     def index(self):
         return self._index
 
     @index.setter
     def index(self, value):
+        pass
+
+    @property
+    def iteration(self):
+        return self._index
+
+    @iteration.setter
+    def iteration(self, value):
         pass
 
     @property
@@ -201,7 +210,7 @@ class Conformation:
             tried fold on the conformation {i}.
 
         """
-        for i in range(steps):
+        for _ in range(steps):
             changed, self.hp_coordinates = MCsearch(hp_sequence=self.hp_sequence,
                                                     hp_coordinates=self.hp_coordinates,
                                                     T=self.T,
@@ -211,12 +220,12 @@ class Conformation:
                                                     **self.kwargs)
 
             self.iteration += 1
-
             if changed:
-                self._index += 1
-                self._transitions.append(self._get_artist())
-                self.change_list.append(self.iteration-1)
+                self._transitions.append(np.copy(self.hp_coordinates))
+                self.change_list.append(self.iteration)
                 self.E_list.append(self.energy)
+                self._index += 1
+
 
         return self.hp_coordinates
 
@@ -263,22 +272,24 @@ class Conformation:
         """"""
         kwargs["T"] = kwargs.get("T", self.T)
         kwargs["legend_title"] = kwargs.get("legend_title", "Conformation")
-        _, ax = plot_conformation(self.hp_coordinates, self.hp_sequence, show=True, **kwargs)
+        plot_conformation(self.hp_coordinates, self.hp_sequence, show=True, **kwargs)
 
-    def _get_artist(self):
+    def _get_artist(self, subplot=None):
         """"""
-        all_artist = plot_conformation(self.hp_coordinates, self.hp_sequence, subplot=self.subplot,
-                                       show=False, returns_artist=True, 
-                                       T=self.T, legend_title="Conformation",
+        all_artist = plot_conformation(self.hp_coordinates, self.hp_sequence, subplot=subplot,
+                                       show=False, returns_artist=True,
+                                       T=self.T, legend_title=f"Conformation {self.index}",
                                        index=self._index, energy=self.energy,
                                        **self.kwargs)
 
         return all_artist
 
-    # TODO: 2 calls will fail
     def animate(self, fps=6, save=False, show=True, **kwargs):
-        if len(self._transitions) > 0:
-            plt_animation = animation.ArtistAnimation(self.subplot[0], self._transitions, repeat=False)
+        size = kwargs.get("size", (8, 8))
+        fig, ax = plt.subplots(1, 1, figsize=size)
+        artist_list = [self._get_artist(coord, subplot=(fig, ax)) for coord in self._transitions]
+        if len(artist_list) > 0:
+            plt_animation = animation.ArtistAnimation(fig, artist_list, repeat=False)
             if save:
                 plt_animation.save(f"../img/conf_{self.name}.gif", fps=fps, dpi=300)
 
