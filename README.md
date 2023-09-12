@@ -11,9 +11,9 @@ Roude JEAN MARIE
 
 We need to be located in the `src` directory and execute the specified commands :    
 
-usage : ```python REMC [fastafile] [-o output_directory]  
-	python REMC.py --help  # to get all available options
-	```
+usage : ```python REMC [fastafile] [-o output_directory]```
+	```python REMC.py --help  # to get all available options```
+	
 
 Files will be generated in `./out/` directory if `-o` option value was not specified.  
 

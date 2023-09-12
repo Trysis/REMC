@@ -111,10 +111,10 @@ if __name__ == "__main__":
                            steps=steps, neighbourhood_fct=nei_algorithm,
                            move_on_step=True)
 
-    #for replica in conformations:
-    #    replica.animate(show=False, save=True, saveto=output_directory)
+    for replica in conformations:
+        replica.animate(show=False, save=True, saveto=output_directory)
 
-    #best_replica.animate(show=True, save=True, saveto=output_directory, filename="best_replica")
-    #best_replica.plot(initial=True, show=False, save=True, saveto=output_directory, filename="best_r_initial")
-    #best_replica.plot(show=False, save=True, saveto=output_directory, filename="best_r")
+    best_replica.animate(show=True, save=True, saveto=output_directory, filename="best_replica")
+    best_replica.plot(initial=True, show=False, save=True, saveto=output_directory, filename="best_r_initial")
+    best_replica.plot(show=False, save=True, saveto=output_directory, filename="best_r")
     best_replica.plot_energy(save=True, saveto=output_directory)
