@@ -86,13 +86,17 @@ if (args.proba < 0) or (args.proba > 1):
 
 # Retrieve args
 output_directory = args.output
+output_directory = output_directory + "/" if output_directory[-1]!="/" else output_directory
+
 # Conformation(s)
 n = args.replica
 random_conformation = args.random
+
 # Temperature
 temperature = args.temperature
 temperature_differences = args.difference
 temperature_set = [temperature+temperature_differences*i for i in range(n)]
+
 # Algorithm
 nei_algorithm = neighbourhood_algorithm[args.algorithm]
 steps = args.steps
@@ -102,31 +106,52 @@ optimal_e = args.energy
 if __name__ == "__main__":
     filename = args.filepath
     basename, ext = os.path.splitext(os.path.basename(filename))
-    basename = args.algorithm + "" + basename
-    sequence = read_fasta(filename) ; print("Reading fasta file . . .")
+    basename = args.algorithm + "_" + basename
+    output_directory = output_directory + basename + "/"
+    print(f"Creating output directory at {output_directory}")
+    if not os.path.isdir(output_directory):
+        os.mkdir(output_directory)
+    print("Reading fasta file . . .")
+    sequence = read_fasta(filename)
+    print("Generating replicas . . .")
     conformations = [Conformation(sequence, T=temp, name=f"{basename}_r{i}_len={len(sequence)}", random=random_conformation) \
                      for i, temp in enumerate(temperature_set)]
 
-    print("Generating replicas . . .")
-    print("REMC Algorithm . . .")
+
+    print(f"REMC Algorithm with {rsteps} replica exchanges and {steps*rsteps} total steps for each conf . . .")
     best_replica, conformations = \
             REMCSimulation(conformations=conformations,
                            optimal_energy=optimal_e, max_iter=rsteps,
                            steps=steps, neighbourhood_fct=nei_algorithm,
                            move_on_step=True)
 
-    print("Done !")
-    print(f"Saving conformational energy change of each replicas in {output_directory} directory")
-    for replica in conformations:
-        replica.plot_energy()
+    print("\nInitial Temperatures of replicas:", end=" ")
+    [print(replica.initial_temperature(), end="  ") for replica in conformations]
+    print("\nInitial energies :", end=" ")
+    [print(replica.initial_energy(), end="  ") for replica in conformations]
+    print("\n\nLast Temperatures of replicas:", end=" ")
+    [print(replica.T, end="  ") for replica in conformations]
+    print("\Best energies of replicas : ", end=" ")
+    [print(replica.best_energy, end="  ") for replica in conformations]
 
-    print("Showing Replica conformational change . . .")
+    print(f"\n\nSaving energy change of each replicas "
+          f"in {output_directory} directory . . .")
+
+    for replica in conformations:
+        replica.plot_energy(saveto=output_directory)
+
+    print("Saving Replica conformational change (.gif) . . .")
     for replica in conformations:
         replica.animate(show=False, save=True, saveto=output_directory)
 
     print("Showing best replica conformational change . . .")
+    print("Wait . . .")
     best_replica.animate(show=True, save=True, saveto=output_directory, filename=f"best_{best_replica.name}")
-    best_replica.plot(initial=True, show=False, save=True, saveto=output_directory, filename=f"best_initial{best_replica.name}")
-    best_replica.plot(show=False, save=True, saveto=output_directory, filename="best_r")
-    best_replica.plot_energy(save=True, saveto=output_directory)
-    print("End")
+    print("Saving best replica animation and energy . . .")
+    best_replica.plot(initial=True, show=False, save=True, saveto=output_directory, filename=f"best_initial_{best_replica.name}")
+    best_replica.plot(show=False, save=True, saveto=output_directory, filename=f"best_{best_replica.name}")
+    best_replica.plot_energy(save=True, saveto=output_directory, filename=f"best_energy_{best_replica.name}")
+    print("Writing best replica PDB file . . .")
+    best_replica.write_models(saveto=output_directory, filename=f"best_conf_{best_replica.name}")
+    print("Done !")
+    print("End of script")

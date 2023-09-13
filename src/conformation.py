@@ -81,13 +81,9 @@ class Conformation:
         self.kwargs = kwargs
         self.name = name
         self._sequence = sequence.upper()
-        self.__T = T  # initial temperature
-        self._T = T  # temperature
-        # In case if the provided sequence is already an HP sequence
-        if set(self._sequence) == {"H", "P"}:
-            self._hp_sequence = self.sequence
-        else:
-            self._hp_sequence = sequence_to_HP(self._sequence)
+        # case if the provided sequence is already an HP sequence
+        self._hp_sequence = self.sequence if set(self._sequence) == {"H", "P"} else \
+                            sequence_to_HP(self._sequence)
         self.__hp_coordinates = hp_coordinates if hp_coordinates is not None else \
             initialize_coordinates(hp_sequence=self._hp_sequence,
                                    random=random_coord_initialization,
@@ -96,7 +92,9 @@ class Conformation:
         self._hp_coordinates = np.copy(self.__hp_coordinates)
         self.__energy = conformation_energy(self._hp_sequence, self._hp_coordinates)  # initial energy
         self._energy = self.__energy
-        self.state_ini()
+        self.__T = T  # initial temperature
+        self._T = T  # temperature
+        self.state_initialization()
 
     def __str__(self):
         """Redefine the output of the function when printed (with print function)."""
@@ -110,13 +108,15 @@ class Conformation:
 
         return to_return
 
-    def state_ini(self):
-        self._transitions = [np.copy(self.__hp_coordinates)]  # coordinates at each step
+    def state_initialization(self):
+        """Initialize inner attributes saving conformational change informations."""
         self._index = 0  # count on move
         self._iteration = 0  # count all iterations
+        self._transitions = [np.copy(self.__hp_coordinates)]  # coordinates at each step
         self.T_list = [self.T]  # temperature swap at (idx, T)
         self.E_list = [self._energy]  # energy at each step (on change)
         self.change_list = [False]  # conformational change boolean list
+        self._best_energy = self.energy  # best energy value
 
     @property
     def index(self):
@@ -181,6 +181,15 @@ class Conformation:
         pass
 
     @property
+    def best_energy(self):
+        return self._best_energy
+
+    @best_energy.setter
+    def best_energy(self, value):
+        """Best value should not be manually changed"""
+        pass
+
+    @property
     def transitions(self):
         return self._transitions
 
@@ -199,22 +208,27 @@ class Conformation:
         """Returns the initial temperature of the conformation."""
         return self.__T
 
-    def write_pdb(self, filename="", saveto="", spacing=3):
+    def initial_energy(self):
+        """Returns the initial energy of the conformation."""
+        return self.__energy
+
+    def write_pdb(self, hp_coordinates=None, filename="", saveto="", spacing=3, returns=False):
         """Write the corresponding conformation in a new pdb file.
-        
+
         filename: str
             The name of the file that will be created
-        
+
         saveto: str
             The directory name
-        
+
         spacing: int
             Distance in Angstrom between positions.
 
         """
         to_write = ""
         to_connect = ""
-        for i, (res, coord) in enumerate(zip(self.sequence, self.hp_coordinates)):
+        hp_coordinates = self.hp_coordinates if hp_coordinates is None else hp_coordinates
+        for i, (res, coord) in enumerate(zip(self.sequence, hp_coordinates)):
             hydrophobic = 1 if self.hp_sequence[i] == "H" else 0
             section = atom_section(atom_id=i, atom_name="CA", res_1_name=res,
                          res_id=i, x=coord[0]*spacing, y=coord[1]*spacing, z=0, bfactor=hydrophobic)
@@ -222,15 +236,50 @@ class Conformation:
             if i < len(self.sequence) - 1:
                 to_connect += f"CONECT{i:>5d}{i+1:>5d}\n"
 
+        to_write += to_connect
+        if returns:
+            return to_write
+
         if saveto == "":
             saveto = DIR_OUT
         elif saveto != "":
             saveto = saveto if saveto[-1] == "/" else saveto + "/"
+
         # Save png
         filename = f"pymol_{self.name}.pdb" if filename == "" else filename
         filename += ".pdb" if filename[-4:] != ".pdb" else ""
+        with open(f"{saveto}{filename}", "w") as pdb_out:
+            pdb_out.write(to_write)
 
-        to_write += to_connect
+    def write_models(self, filename="", saveto="", spacing=3):
+        """Write a set of multiple conformation in a new pdb file,
+            separated by MODEL sections.
+
+        filename: str
+            The name of the file that will be created
+
+        saveto: str
+            The directory name
+
+        spacing: int
+            Distance in Angstrom between positions.
+
+        """
+        to_write = ""
+        for i, coordinates in enumerate(self._transitions):
+            to_write += f"MODEL {i}\n"
+            to_write += self.write_pdb(hp_coordinates=coordinates, filename=filename,
+                                       saveto=saveto, spacing=spacing, returns=True)
+            to_write += f"ENDMDL {i}\n"
+
+        if saveto == "":
+            saveto = DIR_OUT
+        elif saveto != "":
+            saveto = saveto if saveto[-1] == "/" else saveto + "/"
+
+        # Save png
+        filename = f"pymol_{self.name}.pdb" if filename == "" else filename
+        filename += ".pdb" if filename[-4:] != ".pdb" else ""
         with open(f"{saveto}{filename}", "w") as pdb_out:
             pdb_out.write(to_write)
 
@@ -263,6 +312,9 @@ class Conformation:
 
             self.iteration += 1
             if changed:
+                if self.energy < self.best_energy:
+                    self._best_energy = self.energy
+
                 self._transitions.append(np.copy(self.hp_coordinates))
                 self.change_list.append(self.iteration)
                 self.E_list.append(self.energy)
@@ -401,5 +453,6 @@ class Conformation:
 if __name__ == "__main__":
     conf = Conformation("APKGGAYKVVVVVVVVVVVVAP", name="test", T=1, random=True)
     conf.write_pdb()
-    #conf.search(steps=200, neighbourhood_fct=vshd_neighbourhood, move_on_step=True)
+    conf.search(steps=200, neighbourhood_fct=vshd_neighbourhood, move_on_step=True)
+    conf.write_models()
     #conf.animate(save=True)

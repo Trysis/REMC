@@ -21,6 +21,8 @@ XY_RIGHT = np.array([1, 0], dtype=COORD_TYPE)
 XY_LEFT = np.array([-1, 0], dtype=COORD_TYPE)
 XY_DOWN = np.array([0, -1], dtype=COORD_TYPE)
 
+K_b = 0.0019872  # Boltzmann constante
+K_b2 = 0.0001679010
 
 def random_index(positions):
     """Return a random index from the available indices.
@@ -597,7 +599,7 @@ def metropolis_criterion(hp_sequence, hp_coordinates_i, hp_coordinates_iplus1, T
     if deltaEnergy <= 0:
         return 1.0
     else:
-        return np.exp((-deltaEnergy/T)).item()
+        return np.exp((-deltaEnergy/(T * K_b)).item()
 
 
 def re_criterion(hp_sequence, hp_coordinates_i, T_i, hp_coordinates_j, T_j, **kwargs):
@@ -627,7 +629,7 @@ def re_criterion(hp_sequence, hp_coordinates_i, T_i, hp_coordinates_j, T_j, **kw
     """
     energy_i = conformation_energy(hp_sequence, hp_coordinates_i, **kwargs)
     energy_j = conformation_energy(hp_sequence, hp_coordinates_j, **kwargs)
-    criterion = ((1/T_j) - (1/T_i)) * (energy_i - energy_j)
+    criterion = ((1/(T_j * K_b2)) - (1/(T_i * K_b2))) * (energy_i - energy_j)
     if criterion <= 0:
         return 1.0
     else:
