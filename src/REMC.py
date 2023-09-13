@@ -102,6 +102,7 @@ optimal_e = args.energy
 if __name__ == "__main__":
     filename = args.filepath
     basename, ext = os.path.splitext(os.path.basename(filename))
+    basename = args.algorithm + "" + basename
     sequence = read_fasta(filename) ; print("Reading fasta file . . .")
     conformations = [Conformation(sequence, T=temp, name=f"{basename}_r{i}_len={len(sequence)}", random=random_conformation) \
                      for i, temp in enumerate(temperature_set)]

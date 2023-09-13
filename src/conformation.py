@@ -397,7 +397,6 @@ class Conformation:
         else:
             self.plot()
 
-# TODO: Generate Pymol coordinate (animation or single frame)
 
 if __name__ == "__main__":
     conf = Conformation("APKGGAYKVVVVVVVVVVVVAP", name="test", T=1, random=True)

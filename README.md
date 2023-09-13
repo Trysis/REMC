@@ -7,7 +7,7 @@ This project was made for the M2 Bioinformatics course in Universit√© Paris Cit√
 
 Roude JEAN MARIE  
 
-## Script
+## Run
 
 We need to be located in the `src` directory and execute the specified commands :    
 
@@ -15,13 +15,19 @@ usage : ```python REMC [fastafile] [-o output_directory]```
 	```python REMC.py --help  # to get all available options```
 	
 
-Files will be generated in `./out/` directory if `-o` option value was not specified.  
+An animation will be generated after the script is executed, and some output files such as .gif files and energy.png for each replica will be generated in the `./out/` directory if `-o` option value was not specified.
+A Pymol file will also be created in the output directory.  
 
-## Installation
+
+## Installation requierement
 
 Clone the repository :  
 
 ```git clone https://github.com/Trysis/REMC.git```  
+
+Move the freshly created repository :  
+
+```cd ./REMC/```  
 
 Import in conda environment :  
 
@@ -37,7 +43,10 @@ Given a protein sequence the goal is to apply a set of move to obtain an optimal
 
 Only 2D coordinates were used in this project.  
 
-## Some Results
+## Results
+
+VSHD, Pull and Hybrid neighbourhood moves set have been implemented.  
+Conformational change animation will be generated after the script execution.  
 
 With the VSHD neighbourhood moves set :  
 ![front-page](out/run_0/r1_len=16.gif)  

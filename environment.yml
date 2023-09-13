@@ -2,15 +2,13 @@ name: BI
 channels:
   - conda-forge
   - bioconda
-  - salilab
   - defaults
 dependencies:
   - jupyter
   - pylint
   - pydocstyle
   - pycodestyle
-  - pandas
   - matplotlib
+  - numpy
   - jupyterlab
-  - biopython
-  - joblib
+
