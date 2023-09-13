@@ -135,7 +135,7 @@ if __name__ == "__main__":
     [print(replica.best_energy, end="  ") for replica in conformations]
 
     print(f"\n\nSaving energy change of each replicas "
-          f"in {output_directory} directory . . .")
+          f"in\n\t {output_directory} directory . . .")
 
     for replica in conformations:
         replica.plot_energy(saveto=output_directory)
