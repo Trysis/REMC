@@ -131,7 +131,7 @@ if __name__ == "__main__":
     [print(replica.initial_energy(), end="  ") for replica in conformations]
     print("\n\nLast Temperatures of replicas:", end=" ")
     [print(replica.T, end="  ") for replica in conformations]
-    print("\Best energies of replicas : ", end=" ")
+    print("\nBest energies of replicas : ", end=" ")
     [print(replica.best_energy, end="  ") for replica in conformations]
 
     print(f"\n\nSaving energy change of each replicas "
