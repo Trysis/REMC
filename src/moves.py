@@ -599,7 +599,7 @@ def metropolis_criterion(hp_sequence, hp_coordinates_i, hp_coordinates_iplus1, T
     if deltaEnergy <= 0:
         return 1.0
     else:
-        return np.exp((-deltaEnergy/(T * K_b)).item()
+        return np.exp((-deltaEnergy/(T * K_b))).item()
 
 
 def re_criterion(hp_sequence, hp_coordinates_i, T_i, hp_coordinates_j, T_j, **kwargs):
