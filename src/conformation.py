@@ -213,14 +213,14 @@ class Conformation:
 
         """
         to_write = ""
-        to_connect = "\n"
+        to_connect = ""
         for i, (res, coord) in enumerate(zip(self.sequence, self.hp_coordinates)):
             hydrophobic = 1 if self.hp_sequence[i] == "H" else 0
             section = atom_section(atom_id=i, atom_name="CA", res_1_name=res,
                          res_id=i, x=coord[0]*spacing, y=coord[1]*spacing, z=0, bfactor=hydrophobic)
             to_write += f"{section}\n"
-            if i < len(res) - 1:
-                to_connect = f"CONECT{i:>5d}{i+1:>5d}\n"
+            if i < len(self.sequence) - 1:
+                to_connect += f"CONECT{i:>5d}{i+1:>5d}\n"
 
         if saveto == "":
             saveto = DIR_OUT

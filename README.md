@@ -45,3 +45,6 @@ With the VSHD neighbourhood moves set :
 Some energy value during the change in conformation :  
 ![front-page](out/run_0/energy_r0_len=16.png)
 
+Some 2D to 3D graphical representation with Pymol :  
+![front-page](out/run_0/test_pymol.png)
+

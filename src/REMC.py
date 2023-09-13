@@ -101,7 +101,7 @@ optimal_e = args.energy
 
 if __name__ == "__main__":
     filename = args.filepath
-    basename = os.path.basename(filename)
+    basename, ext = os.path.splitext(os.path.basename(filename))
     sequence = read_fasta(filename) ; print("Reading fasta file . . .")
     conformations = [Conformation(sequence, T=temp, name=f"{basename}_r{i}_len={len(sequence)}", random=random_conformation) \
                      for i, temp in enumerate(temperature_set)]
@@ -115,13 +115,17 @@ if __name__ == "__main__":
                            move_on_step=True)
 
     print("Done !")
+    print(f"Saving conformational energy change of each replicas in {output_directory} directory")
+    for replica in conformations:
+        replica.plot_energy()
+
     print("Showing Replica conformational change . . .")
     for replica in conformations:
         replica.animate(show=False, save=True, saveto=output_directory)
 
     print("Showing best replica conformational change . . .")
-    best_replica.animate(show=True, save=True, saveto=output_directory, filename="best_replica")
-    best_replica.plot(initial=True, show=False, save=True, saveto=output_directory, filename="best_r_initial")
+    best_replica.animate(show=True, save=True, saveto=output_directory, filename=f"best_{best_replica.name}")
+    best_replica.plot(initial=True, show=False, save=True, saveto=output_directory, filename=f"best_initial{best_replica.name}")
     best_replica.plot(show=False, save=True, saveto=output_directory, filename="best_r")
     best_replica.plot_energy(save=True, saveto=output_directory)
     print("End")
