@@ -80,10 +80,14 @@ class Conformation:
 
         self.kwargs = kwargs
         self.name = name
-        self._sequence = sequence
+        self._sequence = sequence.upper()
         self.__T = T  # initial temperature
         self._T = T  # temperature
-        self._hp_sequence = sequence_to_HP(self._sequence)
+        # In case if the provided sequence is already an HP sequence
+        if set(self._sequence) == {"H", "P"}:
+            self._hp_sequence = self.sequence
+        else:
+            self._hp_sequence = sequence_to_HP(self._sequence)
         self.__hp_coordinates = hp_coordinates if hp_coordinates is not None else \
             initialize_coordinates(hp_sequence=self._hp_sequence,
                                    random=random_coord_initialization,
@@ -194,6 +198,41 @@ class Conformation:
     def initial_temperature(self):
         """Returns the initial temperature of the conformation."""
         return self.__T
+
+    def write_pdb(self, filename="", saveto="", spacing=3):
+        """Write the corresponding conformation in a new pdb file.
+        
+        filename: str
+            The name of the file that will be created
+        
+        saveto: str
+            The directory name
+        
+        spacing: int
+            Distance in Angstrom between positions.
+
+        """
+        to_write = ""
+        to_connect = "\n"
+        for i, (res, coord) in enumerate(zip(self.sequence, self.hp_coordinates)):
+            hydrophobic = 1 if self.hp_sequence[i] == "H" else 0
+            section = atom_section(atom_id=i, atom_name="CA", res_1_name=res,
+                         res_id=i, x=coord[0]*spacing, y=coord[1]*spacing, z=0, bfactor=hydrophobic)
+            to_write += f"{section}\n"
+            if i < len(res) - 1:
+                to_connect = f"CONECT{i:>5d}{i+1:>5d}\n"
+
+        if saveto == "":
+            saveto = DIR_OUT
+        elif saveto != "":
+            saveto = saveto if saveto[-1] == "/" else saveto + "/"
+        # Save png
+        filename = f"pymol_{self.name}.pdb" if filename == "" else filename
+        filename += ".pdb" if filename[-4:] != ".pdb" else ""
+
+        to_write += to_connect
+        with open(f"{saveto}{filename}", "w") as pdb_out:
+            pdb_out.write(to_write)
 
     def search(self, steps, neighbourhood_fct, move_on_step):
         """Perform the Monte Carlo conformation search on the conformation.
@@ -362,5 +401,6 @@ class Conformation:
 
 if __name__ == "__main__":
     conf = Conformation("APKGGAYKVVVVVVVVVVVVAP", name="test", T=1, random=True)
-    conf.search(steps=200, neighbourhood_fct=vshd_neighbourhood, move_on_step=True)
-    conf.animate(save=True)
+    conf.write_pdb()
+    #conf.search(steps=200, neighbourhood_fct=vshd_neighbourhood, move_on_step=True)
+    #conf.animate(save=True)
